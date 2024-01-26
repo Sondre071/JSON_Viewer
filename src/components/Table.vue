@@ -1,7 +1,8 @@
 <template>
+    <h1 :style="{ 'margin-bottom': '30px' }">Sondre's JSON Viewer</h1>
     <div class="searchBar">
         <div class="input-group-mb-5">
-            <input type="search" class="form-control" name="form" v-model="searchQuery" placeholder="Name"
+            <input type="search" class="form-control" name="form" v-model="searchQuery" placeholder="Search for property"
                 aria-describedby="button-addon2">
         </div>
     </div>
@@ -9,7 +10,8 @@
         <thead>
             <tr>
                 <th v-for="field in jsonKeys" :key="field" @click="sortTable(field)">
-                    {{ field }} <i class="bi bi-sort-alpha-down" aria-label="Sort Icon"></i>
+                    {{ field }} <i :style="{ 'fontWeight': 'normal', 'fontStyle': 'normal' }"
+                        aria-label="Sort Icon">&#x21F5;</i>
                 </th>
             </tr>
         </thead>
@@ -20,21 +22,26 @@
             </tr>
         </tbody>
     </table>
-    <button type.prevent="button" class="show-input-button display-button" @click="toggleShow('input')">Add new
-        entry</button>
-    <button type.prevent="button" class="show-filter-button display-button" @click="toggleShow('filter')">Filter
-        properties</button>
-        <button type.prevent="button" class="reset-fields-button display-button" @click="toggleShow('')">Reset fields</button>
-    <div v-show="inputQueryOn" class="hidden-areas">
+    <div class="buttons-box">
+        <button type.prevent="button" class="show-input-button display-button button" :class="{ selectedButton: inputQueryOn }"
+            @click="toggleShow('input')">Add new
+            entry</button>
+        <button type.prevent="button" class="show-filter-button display-button button"
+            :class="{ selectedButton: filterQueryOn }" @click="toggleShow('filter')">Filter
+            properties</button>
+        <button type.prevent="button" class="reset-fields-button display-button button" @click="toggleShow('')">Reset
+            fields</button>
+    </div>
+    <div v-show="inputQueryOn" class="hidden-area">
         <h3>Add new entry</h3>
         <form>
-            <input type="text" v-for="field, index in jsonKeys" :key="field" v-model="formInput[index]" class="input-field">
-            <br><button type="button" @click="submitInput()">Submit</button><br>
+            <input type="text" v-for="field, index in jsonKeys" :key="field" v-model="formInput[index]" class="input-field" :placeholder=jsonKeys[index]>
+            <br><button type="button" class="button" @click="submitInput()">Submit</button><br>
         </form>
     </div>
 
-    <div v-show="filterQueryOn" class="hidden-areas">
-        <h3>Filter by property</h3>
+    <div v-show="filterQueryOn" class="hidden-area">
+        <h3>Filter by existing property</h3>
         <div class="dropdowns" v-for="(values, index) in valuesArray" :key="index">
             <div> {{ jsonKeys[index] }}</div>
             <select v-model="filterQueryField">
@@ -42,26 +49,16 @@
             </select>
         </div>
     </div>
-
-    <br><br><br><br><br>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import type { Ref } from "vue"
 import { sortBy } from "lodash";
 import "bootstrap/dist/css/bootstrap.min.css";
+import jsonImport from "../assets/data.json"
 
-let jsonData = ref([
-    { "name": "Aria", "race": "Half-Elf", "className": "Rogue", "level": 5, "createdAt": "2021-09-01" },
-    { "name": "Marcus", "race": "Human", "className": "Paladin", "level": 1, "createdAt": "2021-09-15" },
-    { "name": "Tessa", "race": "Dwarf", "className": "Bard", "level": 8, "createdAt": "2021-09-22" },
-    { "name": "Erik", "race": "Dwarf", "className": "Barbarian", "level": 3, "createdAt": "2021-10-01" },
-    { "name": "Lila", "race": "Tiefling", "className": "Warlock", "level": 7, "createdAt": "2021-10-07" },
-    { "name": "Niamh", "race": "Elf", "className": "Ranger", "level": 2, "createdAt": "2021-10-15" },
-    { "name": "Tristan", "race": "Half-Orc", "className": "Fighter", "level": 6, "createdAt": "2021-10-23" },
-    { "name": "Ava", "race": "Halfling", "className": "Cleric", "level": 4, "createdAt": "2021-11-01" }
-])
-
+const jsonData = ref(jsonImport)
 const jsonKeys = Object.keys(jsonData.value[0]);
 const searchQuery = ref("");
 const sort = ref(false);
@@ -70,101 +67,99 @@ const searchQueryOn = ref(false);
 const inputQueryOn = ref(false);
 const filterQueryOn = ref(false);
 const filterQueryField = ref("");
-let formInput = ref(jsonKeys.map((x) => ""));
-const valuesArray = ref([]);
-let tempArray = [];
+const formInput = ref(jsonKeys.map((x) => ""));
+const valuesArray: Ref<valuesArrayTS[]> = ref([]);
+type valuesArrayTS = [string[]?, string[]?, string[]?, number[]?, string[]?]
 
 
-type Array = [string?, string?, string?, number?, string?]
-
+// creates the array needed to render the filter dropdowns
+const valueMapping = () => {
 jsonData.value.forEach((element) => {
     let tempArray: any = Object.values(element);
-    console.log("valuesArray mapping.... it contains: " + valuesArray.value + ". tempArray containing: " + tempArray)
+    //console.log("valuesArray mapping.... it contains: " + valuesArray.value + ". tempArray containing: " + tempArray)
 
     for (let j = 0; j < tempArray.length; j++) {
-        console.log("-inner loop accessed")
+        //console.log("-inner loop accessed")
         if (!valuesArray.value[j]) { valuesArray.value[j] = [] }
         if (valuesArray.value[j].includes(tempArray[j])) {
-            console.log("-- if statement accessed")
-            tempArray.splice(tempArray.indexOf(tempArray[j]), 1, "")
-            console.log("splicing tempArray. new value: " + tempArray);
+            //console.log("-- if statement accessed")
+            continue
         }
         valuesArray.value[j].push(tempArray[j])
-        console.log("-inner loop iteration done")
-        console.log("tempArray: " + tempArray)
-    }
-}
-)
-console.log("array mapping done. + " + valuesArray.value)
+        //console.log("-inner loop iteration done")
+        //console.log("tempArray: " + tempArray)
+    }})}
 
+
+// toggle showing of filter and input fields
 const toggleShow = (str: string) => {
     if (str === "input") {
         filterQueryOn.value = false;
-        console.log("filterQueryOn toggled off")
+        //console.log("filterQueryOn toggled off")
         filterQueryField.value = ""
         inputQueryOn.value = true;
-        console.log("searchQueryOn toggled on")
+        //console.log("searchQueryOn toggled on")
     } else if (str === "filter") {
         inputQueryOn.value = false;
         formInput.value = jsonKeys.map((x) => "")
-        console.log("searchQueryOn toggled off")
+        //console.log("searchQueryOn toggled off")
         filterQueryOn.value = true;
-        console.log("filterQueryOn toggled on")
+        //console.log("filterQueryOn toggled on")
     } else {
         filterQueryOn.value = false;
         inputQueryOn.value = false;
         formInput.value = jsonKeys.map((x) => "")
         filterQueryField.value = ""
         searchQuery.value = ""
-    }
-}
+    }}
 
+
+// initiates sorting functionality
 const sortTable = (key: string | number) => {
-    console.log("- sortTable initiated")
+    //console.log("- sortTable initiated")
     sort.value = true
     if (searchQueryOn.value) {
-        console.log("- sortTable evaluated to true")
+        //console.log("- sortTable evaluated to true")
         queryJson.value = sortBy(queryJson.value, key)
     } else {
-        console.log("- sortTable evaluated to false")
+        //console.log("- sortTable evaluated to false")
         jsonData.value = sortBy(jsonData.value, key)
-    }
-}
+    }}
 
 
+// initiates search functionality
 const searchFunction = (): void => {
     queryJson.value = []
     for (let i = 0; i < jsonData.value.length; i++) {
-        console.log("--- searchFunction initiated")
+        //console.log("--- searchFunction initiated")
         if (JSON.stringify(Object.values(jsonData.value[i])).toLowerCase().includes(searchQuery.value.toLowerCase()) &&
             JSON.stringify(Object.values(jsonData.value[i])).toLowerCase().includes(filterQueryField.value.toLowerCase())) {
-            console.log("- If statement passed. changing the jsonData")
+            //console.log("- If statement passed. changing the jsonData")
             queryJson.value.push(jsonData.value[i])
             searchQueryOn.value = true;
         }
     } if (searchQuery.value === "" && filterQueryField.value === "") {
-        console.log("- searchquery value is null")
+        //console.log("- searchquery value is null")
         searchQueryOn.value = false;
-    }
-}
+    }}
 
 
-
-const submitInput = (): void => {
-
-
-
+// creates an object and appends each value + jsonkey to it, then appends to json
+const submitInput = () => {
+    
     const newObject: any = {}
-    // create object and append each value + jsonkey to it, then append to json
+
     for (let i = 0; i < jsonKeys.length; i++) {
-        console.log(jsonKeys)
+        //console.log(jsonKeys)
         newObject[jsonKeys[i]] = formInput.value[i]
-        console.log("added " + formInput.value[i] + "to the object")
+        //console.log("added " + formInput.value[i] + "to the object")
     }
     jsonData.value.push(newObject)
     formInput.value = jsonKeys.map((x) => "")
-
+    valueMapping()
 }
+
+valueMapping()
 
 watch(() => searchQuery.value, searchFunction)
 watch(() => filterQueryField.value, searchFunction)
@@ -172,13 +167,28 @@ watch(() => filterQueryField.value, searchFunction)
 
 
 
+
+
 <style scoped>
 
-.hidden-areas {
+.hidden-area {
     margin: 25px 0 0 0;
 }
 
 .dropdowns {
     display: inline-block;
 }
-</style>
+
+.button {
+    margin: 5px 2px;
+    border-radius: 5px;
+}
+
+.selectedButton {
+    box-shadow: 0px 0px 2px 1px gray;
+}
+
+.reset-fields-button {
+    background-color: black;
+    color: white;
+}</style>
