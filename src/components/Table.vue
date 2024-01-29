@@ -46,8 +46,6 @@
             <br><button type="button" class="button" @click="submitInput()">Submit</button><br>
         </form>
     </div>
-    <h2>{{ dynamicFields.searchInput }}</h2>
-    <h3>{{ dynamicFields.filterInput }}</h3>
 </template>
 
 <script setup lang="ts">
