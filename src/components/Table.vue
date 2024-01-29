@@ -2,8 +2,8 @@
     <h1 :style="{ 'margin-bottom': '30px' }">Sondre's JSON Viewer</h1>
     <div class="searchBar">
         <div class="input-group-mb-5">
-            <input type="search" class="form-control" name="form" v-model="dynamicFields.searchInput" placeholder="Search for property"
-                aria-describedby="button-addon2">
+            <input type="search" class="form-control" name="form" v-model="dynamicFields.searchInput"
+                placeholder="Search for property" aria-describedby="button-addon2">
         </div>
     </div>
     <table id="tableComponent" class="table table-bordered table-striped">
@@ -13,24 +13,25 @@
                     {{ field }}
                     <button :key="field" class="row-header-button icon" @click="sortTable(field)"
                         aria-label="Sort Icon">&#x21F5;</button> <br>
-                    <select v-model="dynamicFields.filterInput">
+                    <select v-model="dynamicFields.filterInput[index]">
                         <option v-for="(value, valueIndex) in valuesArray[index]" :key="valueIndex">{{ value }}</option>
                     </select>
-                    <button class="bi bi-trash3 icon" @click=" setFilterInput('')"></button>
+                    <button class="bi bi-trash3 icon" @click=" resetFilterField(index)"></button>
 
                 </th>
             </tr>
         </thead>
         <tbody>
-            <tr v-for="item in (booleans.searchField ? modifiedJsonData : jsonData)"
-                :key="(booleans.searchField ? modifiedJsonData.indexOf(item) : jsonData.indexOf(item))">
+            <tr v-for="item in (getData())"
+                :key="(booleans.searchMode ? dynamicFields.modifiedJsonData.indexOf(item) : dynamicFields.jsonData.indexOf(item))">
                 <td v-for="key in jsonKeys" :key="key"> {{ item[key as keyof typeof item] }}</td>
             </tr>
         </tbody>
     </table>
     <div class="buttons-box">
         <button type.prevent="button" class="show-input-button display-button button"
-            :class="{ selectedButton: booleans.newEntryArea }" @click="booleans.newEntryArea ? toggleShow('hide_entry'): toggleShow('show_entry')">Add new
+            :class="{ selectedButton: booleans.newEntryArea }"
+            @click="booleans.newEntryArea ? toggleShow('hide_entry') : toggleShow('show_entry')">Add new
             entry</button>
         <button type.prevent="button" class="reset-fields-button display-button button" @click="toggleShow('')">Reset
             fields</button>
@@ -46,7 +47,7 @@
         </form>
     </div>
     <h2>{{ dynamicFields.searchInput }}</h2>
-    <h2></h2>
+    <h3>{{ dynamicFields.filterInput }}</h3>
 </template>
 
 <script setup lang="ts">
@@ -55,35 +56,46 @@ import type { Ref } from "vue";
 import { sortBy } from "lodash";
 import "bootstrap/dist/css/bootstrap.min.css";
 import jsonImport from "../assets/data.json";
-
-const jsonData = ref(jsonImport)
-const jsonKeys = Object.keys(jsonData.value[0]);
-const modifiedJsonData: any = ref([]);
+const valuesArray: Ref<valuesArrayTS[]> = ref([]);
+type valuesArrayTS = Array<Array<string | number>>
 const booleans = ref({
-    searchField: false,
+    searchMode: false,
     newEntryArea: false,
     filterField: false,
     sort: false
 })
 
 const dynamicFields = ref({
+    jsonData: jsonImport,
+    jsonKeys: Object.keys(jsonImport[0]),
     modifiedJsonData: [],
     searchInput: "",
-    filterInput: "",
+    filterInput: jsonKeys.map((x) => undefined),
     formInput: jsonKeys.map((x) => "")
 
 })
 
+const getData = () => {
+    if (booleans.value.searchMode) {
+        return dynamicFields.value.modifiedJsonData
+    } else {
+        return dynamicFields.value.jsonData
+    }
+}
 
-
-const valuesArray: Ref<valuesArrayTS[]> = ref([]);
-type valuesArrayTS = [string[]?, string[]?, string[]?, number[]?, string[]?]
+const setData = (text) => {
+    if (booleans.value.searchMode) {
+        dynamicFields.value.modifiedJsonData = text
+    } else {
+        dynamicFields.value.jsonData = text
+    }
+}
 
 
 // creates the array needed to render the filter dropdowns
-const valueMapping = () => {
-    jsonData.value.forEach((element) => {
-        let tempArray: any = Object.values(element);
+const dropdownsMapping = () => {
+    for (let i = 0; i < getData().length; i++) {
+        let tempArray: any = Object.values(getData()[i]);
         //console.log("valuesArray mapping.... it contains: " + valuesArray.value + ". tempArray containing: " + tempArray)
 
         for (let j = 0; j < tempArray.length; j++) {
@@ -97,7 +109,11 @@ const valueMapping = () => {
             //console.log("-inner loop iteration done")
             //console.log("tempArray: " + tempArray)
         }
-    })
+    }
+    for (let i = 0; i < valuesArray.value.length; i++) {
+        valuesArray.value[i] = sortBy(valuesArray.value[i]) 
+    }
+
 }
 
 
@@ -109,7 +125,7 @@ const toggleShow = (str: string) => {
     } else if (str === "hide_entry") {
         booleans.value.newEntryArea = false;
         console.log("newEntryArea toggled off")
-        
+
     } else {
         console.log("toggleShow did something weird")
     }
@@ -120,58 +136,54 @@ const toggleShow = (str: string) => {
 const sortTable = (key: string | number) => {
     //console.log("- sortTable initiated")
     booleans.value.sort = true
-    if (booleans.value.searchField) {
-        //console.log("- sortTable evaluated to true")
-        modifiedJsonData.value = sortBy(modifiedJsonData.value, key)
-    } else {
-        //console.log("- sortTable evaluated to false")
-        jsonData.value = sortBy(jsonData.value, key)
-    }
+    setData(sortBy(getData(), key))
 }
 
 
-const setFilterInput = (str: string) => {
-    dynamicFields.value.filterInput = str;
-    console.log("filterInput changed to " + str)
+const resetFilterField = (indexNum: any) => {
+    dynamicFields.value.filterInput[indexNum] = undefined
+    console.log("filterInput changed")
 }
 
 // initiates search functionality
 const searchFunction = () => {
-    modifiedJsonData.value = []
-    for (let i = 0; i < jsonData.value.length; i++) {
+    dynamicFields.value.modifiedJsonData = []
+    for (let i = 0; i < dynamicFields.value.jsonData.length; i++) {
         //console.log("--- searchFunction initiated")
-        if (JSON.stringify(Object.values(jsonData.value[i])).toLowerCase().includes(dynamicFields.value.searchInput.toLowerCase()) &&
-            JSON.stringify(Object.values(jsonData.value[i])).toLowerCase().includes(dynamicFields.value.filterInput.toLowerCase())) {
-            //console.log("- If statement passed. changing the jsonData")
-            modifiedJsonData.value.push(jsonData.value[i])
-            booleans.value.searchField = true;
+        if (JSON.stringify(Object.values(dynamicFields.value.jsonData[i])).toLowerCase().includes(dynamicFields.value.searchInput.toLowerCase()) &&
+            Object.values(dynamicFields.value.jsonData[i]).every((element, index) => element == dynamicFields.value.filterInput[index] || dynamicFields.value.filterInput[index] === undefined)) {
+            booleans.value.searchMode = true;
+            getData().push(dynamicFields.value.jsonData[i])
+            
         }
-    } if (dynamicFields.value.searchInput === "" && dynamicFields.value.filterInput === "") {
+    } if (dynamicFields.value.searchInput === "" && dynamicFields.value.filterInput.every(element => element === undefined)) {
         //console.log("- searchInput value is null")
-        booleans.value.searchField = false;
+        booleans.value.searchMode = false;
     }
+    dropdownsMapping()
 }
 
 
 // creates an object and appends each value + jsonkey to it, then appends to json
 const submitInput = () => {
 
-    const newObject: any = {}
+    const newEntryObject: any = {}
 
     for (let i = 0; i < jsonKeys.length; i++) {
         //console.log(jsonKeys)
-        newObject[jsonKeys[i]] = dynamicFields.value.formInput[i]
+        newEntryObject[jsonKeys[i]] = dynamicFields.value.formInput[i]
         //console.log("added " + formInput.value[i] + "to the object")
     }
-    jsonData.value.push(newObject)
+    dynamicFields.value.jsonData.push(newEntryObject)
     dynamicFields.value.formInput = jsonKeys.map((x) => "")
-    valueMapping()
+    dropdownsMapping()
 }
 
-valueMapping()
+
+dropdownsMapping()
 
 watch(() => dynamicFields.value.searchInput, searchFunction)
-watch(() => dynamicFields.value.filterInput, searchFunction)
+watch(() => dynamicFields.value.filterInput, searchFunction, { deep: true })
 </script>
 
 
@@ -195,7 +207,8 @@ watch(() => dynamicFields.value.filterInput, searchFunction)
 }
 
 .bi-trash3 {
-    margin-left: 5px;;
+    margin-left: 5px;
+    ;
 }
 
 .hidden-area {
