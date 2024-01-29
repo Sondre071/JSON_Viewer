@@ -9,7 +9,7 @@
     <table id="tableComponent" class="table table-bordered table-striped">
         <thead>
             <tr>
-                <th v-for="field, index in jsonKeys">
+                <th v-for="field, index in dynamicFields.jsonKeys">
                     {{ field }}
                     <button :key="field" class="row-header-button icon" @click="sortTable(field)"
                         aria-label="Sort Icon">&#x21F5;</button> <br>
@@ -24,7 +24,7 @@
         <tbody>
             <tr v-for="item in (getData())"
                 :key="(booleans.searchMode ? dynamicFields.modifiedJsonData.indexOf(item) : dynamicFields.jsonData.indexOf(item))">
-                <td v-for="key in jsonKeys" :key="key"> {{ item[key as keyof typeof item] }}</td>
+                <td v-for="key in dynamicFields.jsonKeys" :key="key"> {{ item[key as keyof typeof item] }}</td>
             </tr>
         </tbody>
     </table>
@@ -39,8 +39,8 @@
     <div v-show="booleans.newEntryArea" class="hidden-area">
         <h3>Add new entry</h3>
         <form>
-            <div v-for="field, index in jsonKeys" class="filter-box">
-                <div class="hidden-area-headers">{{ jsonKeys[index] }}</div>
+            <div v-for="field, index in dynamicFields.jsonKeys" class="filter-box">
+                <div class="hidden-area-headers">{{ dynamicFields.jsonKeys[index] }}</div>
                 <input type="text" :key="field" v-model="dynamicFields.formInput[index]" class="input-field">
             </div>
             <br><button type="button" class="button" @click="submitInput()">Submit</button><br>
@@ -70,8 +70,8 @@ const dynamicFields = ref({
     jsonKeys: Object.keys(jsonImport[0]),
     modifiedJsonData: [],
     searchInput: "",
-    filterInput: jsonKeys.map((x) => undefined),
-    formInput: jsonKeys.map((x) => "")
+    filterInput: Object.keys(jsonImport[0]).map((x) => undefined),
+    formInput: Object.keys(jsonImport[0]).map((x) => "")
 
 })
 
@@ -169,13 +169,13 @@ const submitInput = () => {
 
     const newEntryObject: any = {}
 
-    for (let i = 0; i < jsonKeys.length; i++) {
+    for (let i = 0; i < dynamicFields.value.jsonKeys.length; i++) {
         //console.log(jsonKeys)
-        newEntryObject[jsonKeys[i]] = dynamicFields.value.formInput[i]
+        newEntryObject[dynamicFields.value.jsonKeys[i]] = dynamicFields.value.formInput[i]
         //console.log("added " + formInput.value[i] + "to the object")
     }
     dynamicFields.value.jsonData.push(newEntryObject)
-    dynamicFields.value.formInput = jsonKeys.map((x) => "")
+    dynamicFields.value.formInput = dynamicFields.value.jsonKeys.map((x) => "")
     dropdownsMapping()
 }
 
