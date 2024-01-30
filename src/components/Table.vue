@@ -22,8 +22,7 @@
             </tr>
         </thead>
         <tbody>
-            <tr v-for="item in (getData())"
-                :key="(booleans.searchMode ? dynamicFields.modifiedJsonData.indexOf(item) : dynamicFields.jsonData.indexOf(item))">
+            <tr v-for="item in (dataset())" :key="(dataset().indexOf(item))">
                 <td v-for="key in dynamicFields.jsonKeys" :key="key"> {{ item[key as keyof typeof item] }}</td>
             </tr>
         </tbody>
@@ -33,7 +32,8 @@
             :class="{ selectedButton: booleans.newEntryArea }"
             @click="booleans.newEntryArea ? toggleShow('hide_entry') : toggleShow('show_entry')">Add new
             entry</button>
-        <button type.prevent="button" class="reset-fields-button display-button button" @click="toggleShow('')">Reset
+        <button type.prevent="button" class="reset-fields-button display-button button"
+            @click="resetFilterField(undefined), toggleShow('hide_entry'), booleans.searchMode = false">Reset
             fields</button>
     </div>
     <div v-show="booleans.newEntryArea" class="hidden-area">
@@ -46,8 +46,9 @@
             <br><button type="button" class="button" @click="submitInput()">Submit</button><br>
         </form>
     </div>
-    <h2>{{ dynamicFields.searchInput }}</h2>
+    <h2>{{ getSearch() }}</h2>
     <h3>{{ dynamicFields.filterInput }}</h3>
+    <h3>{{ dynamicFields.jsonKeys }}</h3>
 </template>
 
 <script setup lang="ts">
@@ -56,134 +57,227 @@ import type { Ref } from "vue";
 import { sortBy } from "lodash";
 import "bootstrap/dist/css/bootstrap.min.css";
 import jsonImport from "../assets/data.json";
-const valuesArray: Ref<valuesArrayTS[]> = ref([]);
-type valuesArrayTS = Array<Array<string | number>>
+let valuesArray: Ref<Array<string | number>[]> = ref([]);
 const booleans = ref({
     searchMode: false,
     newEntryArea: false,
     filterField: false,
+    filterMode: false,
     sort: false
 })
 
-const dynamicFields = ref({
+interface dynamicTypes {
+    jsonData: typeof jsonImport,
+    jsonKeys: Array<string>,
+    modifiedJsonData: Array<typeof jsonImport[0]>,
+    searchInput: string,
+    filterInput: Array<string | null>,
+    formInput: Array<string>
+
+}
+
+const dynamicFields: Ref<dynamicTypes> = ref({
     jsonData: jsonImport,
     jsonKeys: Object.keys(jsonImport[0]),
-    modifiedJsonData: [],
+    modifiedJsonData: jsonImport,
     searchInput: "",
-    filterInput: Object.keys(jsonImport[0]).map((x) => undefined),
+    filterInput: Object.keys(jsonImport[0]).map((x) => null),
     formInput: Object.keys(jsonImport[0]).map((x) => "")
-
 })
 
-const getData = () => {
-    if (booleans.value.searchMode) {
-        return dynamicFields.value.modifiedJsonData
-    } else {
+
+const dataset = (str: string = "default") => {
+    if (str === "override") {
+        console.log("- returning base dataset")
         return dynamicFields.value.jsonData
-    }
-}
-
-const setData = (text) => {
-    if (booleans.value.searchMode) {
-        dynamicFields.value.modifiedJsonData = text
     } else {
-        dynamicFields.value.jsonData = text
+        console.log("- returning dataset")
+        return dynamicFields.value.modifiedJsonData
     }
 }
 
+const setData = (text: typeof jsonImport, override = "default") => {
+    console.log("*-setData called")
+    if (override === "override") {
+        dynamicFields.value.jsonData = text
+    } else {
+        dynamicFields.value.modifiedJsonData = text
+    }
+}
 
+const getSearch = () => {
+    return dynamicFields.value.searchInput.toLowerCase()
+}
+
+const getFilters = () => {
+    return dynamicFields.value.filterInput
+}
+/*
 // creates the array needed to render the filter dropdowns
 const dropdownsMapping = () => {
-    for (let i = 0; i < getData().length; i++) {
-        let tempArray: any = Object.values(getData()[i]);
-        //console.log("valuesArray mapping.... it contains: " + valuesArray.value + ". tempArray containing: " + tempArray)
-
+    valuesArray.value = []
+    console.log("*** dropdownsmapping function called. Value: " + valuesArray.value)
+    for (let i = 0; i < dataset("override").length; i++) {
+        console.log("-- I-loop iteration: " + i)
+        const tempArray = Object.values(dataset("override")[i]);
         for (let j = 0; j < tempArray.length; j++) {
-            //console.log("-inner loop accessed")
-            if (!valuesArray.value[j]) { valuesArray.value[j] = [] }
+            console.log("-- J-loop iteration: " + j)
+            if (!valuesArray.value[j]) {
+                valuesArray.value[j] = []
+                console.log("- If passed, adding empty array to valuesArray" + [j])
+            }
             if (valuesArray.value[j].includes(tempArray[j])) {
-                //console.log("-- if statement accessed")
+                console.log("- loop continued")
                 continue
             }
             valuesArray.value[j].push(tempArray[j])
-            //console.log("-inner loop iteration done")
-            //console.log("tempArray: " + tempArray)
+            console.log("- Values pushed to valuesArray: " + valuesArray.value[j])
         }
     }
     for (let i = 0; i < valuesArray.value.length; i++) {
-        valuesArray.value[i] = sortBy(valuesArray.value[i]) 
+        valuesArray.value[i] = sortBy(valuesArray.value[i])
+        console.log("- Sorting valuesArray, interation: " + i + ", containing: " + valuesArray.value[i])
+
     }
+    console.log("*** dropdownmapping function end")
+} */
 
-}
-
-
-// toggle showing of filter and input fields
-const toggleShow = (str: string) => {
-    if (str === "show_entry") {
-        booleans.value.newEntryArea = true;
-        console.log("newEntryArea toggled on")
-    } else if (str === "hide_entry") {
-        booleans.value.newEntryArea = false;
-        console.log("newEntryArea toggled off")
-
-    } else {
-        console.log("toggleShow did something weird")
-    }
-}
-
-
-// initiates sorting functionality
-const sortTable = (key: string | number) => {
-    //console.log("- sortTable initiated")
-    booleans.value.sort = true
-    setData(sortBy(getData(), key))
-}
-
-
-const resetFilterField = (indexNum: any) => {
-    dynamicFields.value.filterInput[indexNum] = undefined
-    console.log("filterInput changed")
-}
-
-// initiates search functionality
-const searchFunction = () => {
-    dynamicFields.value.modifiedJsonData = []
-    for (let i = 0; i < dynamicFields.value.jsonData.length; i++) {
-        //console.log("--- searchFunction initiated")
-        if (JSON.stringify(Object.values(dynamicFields.value.jsonData[i])).toLowerCase().includes(dynamicFields.value.searchInput.toLowerCase()) &&
-            Object.values(dynamicFields.value.jsonData[i]).every((element, index) => element == dynamicFields.value.filterInput[index] || dynamicFields.value.filterInput[index] === undefined)) {
-            booleans.value.searchMode = true;
-            getData().push(dynamicFields.value.jsonData[i])
-            
+const dropdownMapping = () => {
+    valuesArray.value = []
+    console.log("*** newDropDown function called")
+    for (let i = 0; i < dataset().length; i++) {
+        const tempArray = Object.values(dataset()[i])
+        for (let j = 0; j < tempArray.length; j++) {
+            if (!valuesArray.value[j]) {
+                valuesArray.value[j] = []
+            }
+            if (valuesArray.value[j].includes(tempArray[j])) {
+                continue
+            }
+            valuesArray.value[j].push(tempArray[j])
         }
-    } if (dynamicFields.value.searchInput === "" && dynamicFields.value.filterInput.every(element => element === undefined)) {
-        //console.log("- searchInput value is null")
-        booleans.value.searchMode = false;
     }
-    dropdownsMapping()
+    for (let i = 0; i < valuesArray.value.length; i++) {
+        valuesArray.value[i] = sortBy(valuesArray.value[i])
+    }
+    console.log("*** dropDownMapping end")
 }
 
 
-// creates an object and appends each value + jsonkey to it, then appends to json
-const submitInput = () => {
-
-    const newEntryObject: any = {}
-
-    for (let i = 0; i < dynamicFields.value.jsonKeys.length; i++) {
-        //console.log(jsonKeys)
-        newEntryObject[dynamicFields.value.jsonKeys[i]] = dynamicFields.value.formInput[i]
-        //console.log("added " + formInput.value[i] + "to the object")
+    // toggle showing of filter and input fields
+    const toggleShow = (str: string) => {
+        console.log("*** toggleShow function called")
+        if (str === "show_entry") {
+            booleans.value.newEntryArea = true;
+            console.log("- newEntryArea toggled on")
+        } else if (str === "hide_entry") {
+            booleans.value.newEntryArea = false;
+            console.log("- newEntryArea toggled off")
+        }
     }
-    dynamicFields.value.jsonData.push(newEntryObject)
-    dynamicFields.value.formInput = dynamicFields.value.jsonKeys.map((x) => "")
-    dropdownsMapping()
-}
 
 
-dropdownsMapping()
+    // initiates sorting functionality
+    const sortTable = (key: string | number) => {
+        console.log("*** sorttable function called")
+        booleans.value.sort = true
+        dynamicFields.value.modifiedJsonData = sortBy(dataset(), key)
+    }
 
-watch(() => dynamicFields.value.searchInput, searchFunction)
-watch(() => dynamicFields.value.filterInput, searchFunction, { deep: true })
+
+    const resetFilterField = (str: number | undefined) => {
+        console.log("*** resetfilterfield function called")
+        if (str === undefined) {
+            dynamicFields.value.filterInput = dynamicFields.value.filterInput.map((x) => null)
+            console.log("resetAll called. finterInput is now: " + dynamicFields.value.filterInput)
+        } else {
+            dynamicFields.value.filterInput[str] = null
+        }
+
+    }
+
+
+
+    const searchFunction = () => {
+        console.log("*** searchfunction called")
+        if (getFilters().every(element => element === undefined && getSearch() === "")) {
+            console.log("*** searchfunction ended early")
+            setData(dataset("override"))
+            booleans.value.searchMode = false
+            dropdownMapping()
+            return
+        }
+        setData([])
+        console.log("- Searchfunction starting for loop")
+        for (let i = 0; i < dataset("override").length; i++) {
+            console.log("- Searchfunction for loop iteration: " + i)
+            let stringedValues = Object.values(dataset("override")[i]).map(value => String(value).toLowerCase());
+            console.log("- stringedValues defined as: " + stringedValues)
+            if (!getSearch() || stringedValues.includes(getSearch())) {
+                stringedValues = Object.values(dataset("override")[i]).map(value => String(value));
+                console.log("- Searchfunction if statement passed")
+                console.log("- About to check the second if-statement. \n - stringedValues :" + stringedValues[i] + "\n - getFilters: " + getFilters())
+                if (stringedValues.every((element, index) => getFilters()[index] === null || element == getFilters()[index])) {
+                    console.log("- Searchfunction second if statement passed")
+                    dynamicFields.value.modifiedJsonData.push(dataset("override")[i])
+                } else { continue }
+            } else { continue }
+        }
+        booleans.value.searchMode = true
+        dropdownMapping()
+    }
+
+    /*
+    const searchFunction = () => {
+        dynamicFields.value.modifiedJsonData = []
+        console.log("*** searchfunction function called")
+        let dataLength = dataset().length
+        if (dataLength <= 1) {
+            dataLength++
+        }
+        for (let i = 0; i < dataLength; i++) {
+            console.log("- searchFunction I-loop interation: " + i)
+            const itemValues = Object.values(dataset("override")[i])
+            if (JSON.stringify(itemValues).toLowerCase().includes(getSearch().toLowerCase()) &&
+                itemValues.every((element, index) => getFilters()[index] === undefined || element == getFilters()[index])) {
+                console.log("- If-statement passed")
+                dataset().push(dynamicFields.value.jsonData[i])
+    
+            }
+        } if (getSearch() === "" && getFilters().every(element => element === undefined)) {
+            console.log("- Second if-statement passed")
+            booleans.value.searchMode = false;
+        } else {
+            booleans.value.searchMode = true;
+        }
+        console.log("*** searchFunction end")
+        dropdownsMapping()
+    }
+    */
+
+    // creates an object and appends each value + jsonkey to it, then appends to json
+    const submitInput = () => {
+        console.log("*** submitinput function called")
+        const newEntryObject: any = {};
+
+        for (let i = 0; i < dynamicFields.value.jsonKeys.length; i++) {
+            //console.log(jsonKeys)
+            newEntryObject[dynamicFields.value.jsonKeys[i]] = dynamicFields.value.formInput[i]
+            //console.log("added " + formInput.value[i] + "to the object")
+        }
+        dataset("override").push(newEntryObject)
+        dynamicFields.value.formInput = dynamicFields.value.jsonKeys.map((x) => "")
+        dropdownMapping()
+        searchFunction()
+    }
+
+    console.log("Website loaded")
+
+    dropdownMapping()
+    
+
+    watch(() => dynamicFields.value.searchInput, searchFunction)
+    watch(() => dynamicFields.value.filterInput, searchFunction, { deep: true })
 </script>
 
 
