@@ -56,7 +56,7 @@
                     <br>
                 </tr>
                 <tr class="expanded-row" v-show="booleans.expandField">
-                    <td> <strong> Index in dataset: </strong>
+                    <td> <strong> Age: </strong>
                     </td>
                     <td>{{ getAge(dynamicFields.expandInput[4]) }}</td>
                     <br>
