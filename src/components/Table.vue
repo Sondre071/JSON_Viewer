@@ -81,12 +81,16 @@
         <button type.prevent="button" class="reset-fields-button display-button button" @click="resetFields()">Reset
             fields</button>
     </div>
-    <h2>{{ getSearch() }}</h2>
-    <h3>{{ dynamicFields.filterInput }}</h3>
-    <h3>{{ dynamicFields.jsonKeys }}</h3>
-    <h3>Modify: {{ dynamicFields.formInput }}</h3>
-    <h3>Expand: {{ dynamicFields.expandInput }}</h3>
-    <h3>{{ getAge("1997-04-29") }}</h3>
+    <div v-show="booleans.newEntryArea" class="hidden-area">
+        <h3>Add new entry</h3>
+        <form>
+            <div v-for="field, index in dynamicFields.jsonKeys" class="filter-box">
+                <div class="hidden-area-headers">{{ dynamicFields.jsonKeys[index] }}</div>
+                <input type="text" :key="field" v-model="dynamicFields.formInput[index]" class="input-field">
+            </div>
+            <br><button type="button" class="button" @click="submitInput()">Submit</button><br>
+        </form>
+    </div>
 </template>
 
 <script setup lang="ts">
