@@ -4,18 +4,24 @@ export type EntryObject = {
 };
 
 export type TableDataType = {
+  baseData: Array<EntryObject>;
   currentDropdowns: Array<AcceptedTypes>[];
-  undisplayedData: Array<EntryObject>;
   dataFields: Array<string>;
-  displayedData: Array<EntryObject>;
+  renderedData: Array<EntryObject>;
   unsortedData: Array<EntryObject>;
 };
 
+export type BooleansType = {
+  [key: string]: boolean;
+};
+
 export type InputsType = {
+  currentModifiedEntry: Array<AcceptedTypes>;
   expandDate: string;
   expandInput: Array<AcceptedTypes>;
   filterInput: Array<AcceptedTypes>;
   formInput: Array<AcceptedTypes>;
+  inputFieldsTypes: Array<AcceptedTypes>;
   modifyEntryInput: Array<AcceptedTypes>;
   searchInput: string;
 };
@@ -24,3 +30,4 @@ export type SortingType = {
   currentSort: string;
   sortState: 'none' | 'ascending' | 'descending';
 };
+
