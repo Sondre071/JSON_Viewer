@@ -1,173 +1,81 @@
-<template>
-    <h1 :style="{ 'margin-bottom': '30px' }">Sondre's JSON Viewer</h1>
-    <div class="searchBar">
-        <div class="input-group-mb-5">
-            <input type="search" class="form-control" name="form" v-model="dynamicFields.searchInput"
-                placeholder="Search for property" aria-describedby="button-addon2">
-        </div>
-    </div>
-    <div class="table-outer-box">
-        <table id="tableComponent" class="table table-bordered table-striped">
-            <thead>
-                <tr>
-                    <th class="header-box" v-for="field, index in dynamicFields.jsonKeys">
-                        {{ field }}
-                        <button :key="field" class="row-header-button icon" @click="sortTable(field)"
-                            aria-label="Sort Icon">&#x21F5;</button>
-                        <div v-show="booleans.filterMode" class="dropdown">
-                            <select v-model="dynamicFields.filterInput[index]">
-                                <option v-for="(value, valueIndex) in valuesArray[index]" :key="valueIndex">{{ value }}
-                                </option>
-                            </select>
-                            <button class="bi bi-trash3 icon" @click=" resetFilterField(index)"></button>
-                        </div>
-                    </th>
-                    <th class="action-header"></th>
-                    <th class="action-header"></th>
-                    <th class="action-header"></th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="item, index in (dataset())" :key="(dataset().indexOf(item))">
-                    <td v-for="key in dynamicFields.jsonKeys" :key="key"> {{ item[key as keyof typeof item] }}</td>
-                    <td> <button class="bi bi-arrows-angle-expand icon"
-                            @click="!booleans.expandField ? [expandEntry(index), deleteEntry(index)] : alertFunction('Finish what you\'re doing first!')"></button>
-                    </td>
-                    <td> <button class="bi bi-wrench icon"
-                            @click="!booleans.inputArea ? [moveEntry(index), deleteEntry(index)] : alertFunction('Finish what you\'re doing first!')"></button>
-                    </td>
-                    <td> <button class="bi bi-trash3 icon" @click="deleteEntry(index)"></button></td>
-                </tr>
-                <tr class="input-area">
-                    <td v-show="booleans.inputArea" v-for="field, index in dynamicFields.jsonKeys">
-                        <input type="text" :key="index" v-model="dynamicFields.formInput[index]">
-                    </td>
-                    <td v-show="booleans.inputArea" colspan="2"> <button type="button" class="button"
-                            @click="pushInput()">Submit</button></td>
-                    <td v-show="booleans.inputArea"><button @click="resetInput()" class="bi bi-trash3 icon"></button></td>
-                </tr>
-                <tr class="expanded-row" v-show="booleans.expandField">
-                    <td v-for="item, index in dynamicFields.expandInput">
-                        <strong>{{ dynamicFields.expandInput[index] }}</strong>
-                    </td>
-                    <td rowspan="2" colspan="3">
-                        <button @click="moveEntry(undefined)" class="bi bi-arrows-angle-contract icon"></button>
-                    </td>
-                    <br>
-                </tr>
-                <tr class="expanded-row" v-show="booleans.expandField">
-                    <td> <strong> Age: </strong>
-                    </td>
-                    <td>{{ getAge(dynamicFields.expandInput[4]) }}</td>
-                    <br>
-                </tr>
-            </tbody>
-        </table>
-        <div class="side-panel">
-            <button class="side-panel-button"
-                @click="booleans.filterMode ? [booleans.filterMode = false, resetFilterField(undefined)] : booleans.filterMode = true"><i
-                    class="bi bi-funnel"></i></button>
-        </div>
-        <div>
-        </div>
-    </div>
-
-
-    <div class="buttons-box">
-        <button type.prevent="button" class="show-input-button display-button button"
-            :class="{ selectedButton: booleans.inputArea }"
-            @click="booleans.inputArea ? toggleShow('hide_entry') : toggleShow('show_entry')">Add new
-            entry</button>
-        <button type.prevent="button" class="reset-fields-button display-button button" @click="resetFields()">Reset
-            fields</button>
-    </div>
-    <div v-show="booleans.newEntryArea" class="hidden-area">
-        <h3>Add new entry</h3>
-        <form>
-            <div v-for="field, index in dynamicFields.jsonKeys" class="filter-box">
-                <div class="hidden-area-headers">{{ dynamicFields.jsonKeys[index] }}</div>
-                <input type="text" :key="field" v-model="dynamicFields.formInput[index]" class="input-field">
-            </div>
-            <br><button type="button" class="button" @click="submitInput()">Submit</button><br>
-        </form>
-    </div>
-</template>
-
 <script setup lang="ts">
-import { ref, watch } from "vue";
-import type { Ref } from "vue";
-import { sortBy } from "lodash";
-import "bootstrap/dist/css/bootstrap.min.css";
-import jsonImport from "../assets/data.json";
+import { ref, watch } from 'vue';
+import type { Ref } from 'vue';
+import { sortBy } from 'lodash';
+import jsonImport from '../assets/data.json';
+import * as tableTypes from "./types.Table"
 
-let valuesArray: Ref<Array<string | number>[]> = ref([]);
+
+const fillArray = (value: tableTypes.acceptedTypes) => {
+    return Object.keys(jsonImport[0]).map((x) => value)
+}
+
+let valuesArray: Ref<Array<tableTypes.acceptedTypes>[]> = ref([]);
 const booleans = ref({
     searchMode: false,
     inputArea: false,
     filterField: false,
     filterMode: false,
     expandField: false,
-    sort: false
-})
+});
 
-interface dynamicTypes {
-    jsonData: typeof jsonImport,
-    jsonKeys: Array<string>,
-    modifiedJsonData: Array<typeof jsonImport[0]>,
-    searchInput: string,
-    filterInput: Array<string | null>,
-    formInput: Array<any>,
-    modifyEntryInput: Array<string>,
-    expandInput: Array<any>,
-    expandDate: string
 
-}
-
-const dynamicFields: Ref<dynamicTypes> = ref({
-    jsonData: jsonImport,
-    jsonKeys: Object.keys(jsonImport[0]),
-    modifiedJsonData: jsonImport,
-    expandInput: Object.keys(jsonImport[0]).map((x) => ""),
-    expandDate: "",
-    searchInput: '',
-    filterInput: Object.keys(jsonImport[0]).map((x) => null),
-    formInput: Object.keys(jsonImport[0]).map((x) => ""),
-    modifyEntryInput: Object.keys(jsonImport[0]).map((x) => "")
+const tableData: Ref<tableTypes.listDataType> = ref({
+    jsonData: jsonImport,                   // Sorted data
+    jsonKeys: Object.keys(jsonImport[0]),   // Fields/keys
+    modifiedJsonData: jsonImport,           // Filtered and searched data
+    rawData: jsonImport                     // Original unsorted data plus new entries
 })
 
 
-const dataset = (str: string = "default") => {
-    if (str === "override") {
-        console.log("- returning base dataset")
-        return dynamicFields.value.jsonData
-    } else {
-        console.log("- returning dataset")
-        return dynamicFields.value.modifiedJsonData
-    }
-}
+const inputs: Ref<tableTypes.inputsType> = ref({
+    expandDate: '',
+    expandInput: fillArray(""),
+    filterInput: fillArray(null),
+    formInput: fillArray(""),
+    modifyEntryInput: fillArray(""),
+    searchInput: ""
+})
 
 
-const setData = (text: typeof jsonImport, override = "default") => {
-    console.log("- setData called")
-    if (override === "override") {
-        dynamicFields.value.jsonData = text
+const sorting: Ref<tableTypes.sortingType> = ref({
+    currentSort: "",
+    sortState: "none"
+})
+
+const dataset = (str: string = 'default') => {
+    if (str === 'override') {
+        console.log('- returning base dataset');
+        return tableData.value.jsonData;
+    } else if (str === 'raw') {
+        console.log('- returning raw dataset');
+        return tableData.value.rawData;
     } else {
-        dynamicFields.value.modifiedJsonData = text
+        console.log('- returning dataset');
+        return tableData.value.modifiedJsonData;
     }
-}
+};
+
+const setData = (input: Array<tableTypes.entryObject>, override = 'default') => {
+    console.log('- setData called');
+    if (override === 'override') {
+        tableData.value.jsonData = input;
+    } else {
+        tableData.value.modifiedJsonData = input;
+    }
+};
 
 const getSearch = () => {
-    return dynamicFields.value.searchInput.toLowerCase()
-}
-
+    return inputs.value.searchInput.toLowerCase();
+};
 
 const getFilters = () => {
-    return dynamicFields.value.filterInput
-}
+    return inputs.value.filterInput;
+};
 
 const getAge = (dateString: string) => {
-    const today = new Date()
-    const date = new Date(dateString)
+    const today = new Date();
+    const date = new Date(dateString);
 
     let years = today.getFullYear() - date.getFullYear();
     let months = today.getMonth() - date.getMonth();
@@ -182,211 +90,500 @@ const getAge = (dateString: string) => {
         months += 12;
     }
 
-    return `Character was created ${years} years, ${months} months, ${days} days ago`
-}
+    return `Character was created ${years} years, ${months} months, ${days} days ago`;
+};
 
 const resetFields = () => {
-    resetFilterField(undefined)
-    booleans.value.searchMode = false
-    resetInput()
-}
+    resetFilterField(undefined);
+    booleans.value.searchMode = false;
+    resetInput();
+};
 
 const resetInput = () => {
-    dynamicFields.value.formInput = Object.keys(jsonImport[0]).map((x) => "")
-    booleans.value.inputArea = false
-}
-
-
+    inputs.value.formInput = Object.keys(jsonImport[0]).map((x) => '');
+    booleans.value.inputArea = false;
+};
 
 const toggleShow = (str: string) => {
-    console.log("*** toggleShow function called")
-    if (str === "show_entry") {
+    console.log('*** toggleShow function called');
+    if (str === 'show_entry') {
         booleans.value.inputArea = true;
-        console.log("- inputArea toggled on")
-    } else if (str === "hide_entry") {
+        console.log('- inputArea toggled on');
+    } else if (str === 'hide_entry') {
         booleans.value.inputArea = false;
-        console.log("- inputArea toggled off")
+        console.log('- inputArea toggled off');
     }
-}
+};
 
 const moveEntry = (index: number | undefined) => {
-    console.log("*** moveEntry function called")
-    if (typeof(index) === "number") {
+    console.log('*** moveEntry function called');
+    if (typeof index === 'number') {
         booleans.value.inputArea = true;
-        dynamicFields.value.formInput = Object.values(dynamicFields.value.modifiedJsonData[index])
+        inputs.value.formInput = Object.values(tableData.value.modifiedJsonData[index]);
     } else if (index === undefined) {
-        pushInput()
+        pushInput();
         booleans.value.inputArea = false;
-        booleans.value.expandField = false
+        booleans.value.expandField = false;
     } else {
-        console.log("- moveEntry got a strange input")
+        console.log('- moveEntry got a strange input');
     }
-}
+};
 
 const deleteEntry = (index: number) => {
-    console.log("*** deleteEntry function called")
-    dynamicFields.value.jsonData.splice(index, 1)
-}
+    console.log('*** deleteEntry function called');
+    tableData.value.jsonData.splice(index, 1);
+};
 
 const expandEntry = (index: number) => {
-    console.log("*** expandEntry function called")
+    console.log('*** expandEntry function called');
 
-    dynamicFields.value.expandInput = Object.values(dynamicFields.value.modifiedJsonData[index])
-    booleans.value.expandField = !booleans.value.expandField
-}
+    inputs.value.expandInput = Object.values(tableData.value.modifiedJsonData[index]);
+    booleans.value.expandField = !booleans.value.expandField;
+};
 
-const sortTable = (key: string | number) => {
-    console.log("*** sorttable function called")
-    booleans.value.sort = true
-    dynamicFields.value.modifiedJsonData = sortBy(dataset(), key)
-}
+const sortTable = (key: string) => {
+    console.log('*** sorttable function called');
+    const states: ("none" | "ascending" | "descending")[] = ["none", "ascending", "descending"]
+    if (sorting.value.currentSort !== key) {
+        sorting.value.sortState = "none"
+    }
+    const currentIndex = states.indexOf(sorting.value.sortState)
+    const nextIndex = (currentIndex + 1) % states.length
+    const nextState = states[nextIndex]
+    const sortActions = {
+        none: (key: string = "default") => tableData.value.jsonData = tableData.value.rawData,
+        ascending: (key: string) => tableData.value.jsonData = sortBy(dataset('override'), key),
+        descending: (key: string = "default") => tableData.value.jsonData = sortBy(dataset('override').reverse())
+    }
 
+    sorting.value.currentSort = key;
+    sorting.value.sortState = nextState;
+    tableData.value.jsonData = sortActions[nextState](key)
+};
 
 const resetFilterField = (str: number | undefined) => {
-    console.log("*** resetfilterfield function called")
+    console.log('*** resetfilterfield function called');
     if (str === undefined) {
-        dynamicFields.value.filterInput = dynamicFields.value.filterInput.map((x) => null)
-        dynamicFields.value.searchInput = ""
-        console.log("resetAll called. finterInput is now: " + dynamicFields.value.filterInput)
+        inputs.value.filterInput = inputs.value.filterInput.map((x) => null);
+        inputs.value.searchInput = '';
+        console.log('resetAll called. finterInput is now: ' + inputs.value.filterInput);
     } else {
-        dynamicFields.value.filterInput[str] = null
+        inputs.value.filterInput[str] = null;
     }
-
-}
+};
 
 const alertFunction = (str: string) => {
-    alert(str)
-}
-
+    alert(str);
+};
 
 const searchFunction = () => {
-    console.log("*** searchfunction called")
-    if (getFilters().every(element => element === undefined && getSearch() === "")) {
-        console.log("*** searchfunction ended early")
-        setData(dataset("override"))
-        booleans.value.searchMode = false
-        dropdownMapping()
-        return
+    console.log('*** searchfunction called');
+    if (getFilters().every((element) => element === undefined && getSearch() === '')) {
+        console.log('*** searchfunction ended early');
+        setData(dataset('override'));
+        booleans.value.searchMode = false;
+        dropdownMapping();
+        return;
     }
 
-    setData([])
-    console.log("- Searchfunction starting for loop")
-    for (let i = 0; i < dataset("override").length; i++) {
-        console.log("- Searchfunction for loop iteration: " + i)
-        const stringedValues = JSON.stringify(Object.values(dataset("override")[i]))
+    setData([]);
+    console.log('- Searchfunction starting for loop');
+    for (let i = 0; i < dataset('override').length; i++) {
+        console.log('- Searchfunction for loop iteration: ' + i);
+        const stringedValues = JSON.stringify(Object.values(dataset('override')[i]));
         if (!getSearch() || stringedValues.toLowerCase().includes(getSearch())) {
-            console.log("- Searchfunction if statement passed")
-            if (Object.values(dataset("override")[i]).every((element, index) => !getFilters()[index] || element == getFilters()[index])) {
-                console.log("- Searchfunction second if statement passed")
-                dynamicFields.value.modifiedJsonData.push(dataset("override")[i])
-            } else { continue }
-        } else { continue }
+            console.log('- Searchfunction if statement passed');
+            if (
+                Object.values(dataset('override')[i]).every(
+                    (element, index) => !getFilters()[index] || element == getFilters()[index]
+                )
+            ) {
+                console.log('- Searchfunction second if statement passed');
+                tableData.value.modifiedJsonData.push(dataset('override')[i]);
+            } else {
+                continue;
+            }
+        } else {
+            continue;
+        }
     }
-    booleans.value.searchMode = true
-    dropdownMapping()
-}
+    booleans.value.searchMode = true;
+    dropdownMapping();
+};
 
 const dropdownMapping = () => {
-    valuesArray.value = []
-    console.log("*** newDropDown function called")
+    valuesArray.value = [];
+    console.log('*** newDropDown function called');
     for (let i = 0; i < dataset().length; i++) {
-        const tempArray = Object.values(dataset()[i])
+        const tempArray = Object.values(dataset()[i]);
         for (let j = 0; j < tempArray.length; j++) {
             if (!valuesArray.value[j]) {
-                valuesArray.value[j] = []
+                valuesArray.value[j] = [];
             }
             if (valuesArray.value[j].includes(tempArray[j])) {
-                continue
+                continue;
             }
-            valuesArray.value[j].push(tempArray[j])
+            valuesArray.value[j].push(tempArray[j]);
         }
     }
     for (let i = 0; i < valuesArray.value.length; i++) {
-        valuesArray.value[i] = sortBy(valuesArray.value[i])
+        valuesArray.value[i] = sortBy(valuesArray.value[i]);
     }
-    console.log("*** dropDownMapping end")
-}
+    console.log('*** dropDownMapping end');
+};
 
 const pushInput = () => {
-    console.log("*** pushInput function called")
-    const newEntryObject: any = {};
+    console.log('*** pushInput function called');
+    const newEntryObject: tableTypes.entryObject = {};
 
-    for (let i = 0; i < dynamicFields.value.jsonKeys.length; i++) {
-        //console.log(jsonKeys)
-        newEntryObject[dynamicFields.value.jsonKeys[i]] = booleans.value.expandField ? dynamicFields.value.expandInput[i] : dynamicFields.value.formInput[i]
-        //console.log("added " + formInput.value[i] + "to the object")
+    for (let i = 0; i < tableData.value.jsonKeys.length; i++) {
+        newEntryObject[tableData.value.jsonKeys[i]] = booleans.value.expandField
+            ? inputs.value.expandInput[i]
+            : inputs.value.formInput[i];
     }
-    dataset("override").push(newEntryObject)
-    booleans.value.inputArea = false
-    dynamicFields.value.formInput = dynamicFields.value.jsonKeys.map((x) => "")
-    dropdownMapping()
-    searchFunction()
+    dataset('override').push(newEntryObject);
+    dataset('raw').push(newEntryObject);
+
+    booleans.value.inputArea = false;
+    inputs.value.formInput = tableData.value.jsonKeys.map((x) => '');
+    dropdownMapping();
+    searchFunction();
+};
+
+const sortStateIcon = (field: string) => {
+    if (field !== sorting.value.currentSort) {
+        return '&#8693;'
+    }
+    const icons = {
+        "none": "&#8693;",
+        "ascending": "&#8593;",
+        "descending": "&#8595;"
+    }
+
+    return icons[sorting.value.sortState]
 }
 
-dropdownMapping()
-console.log("----- Website loaded -----")
+dropdownMapping();
+console.log('----- Website loaded -----');
 
-watch(() => dynamicFields.value.jsonData, searchFunction, { deep: true })
-watch(() => dynamicFields.value.searchInput, searchFunction)
-watch(() => dynamicFields.value.filterInput, searchFunction, { deep: true })
+watch(() => tableData.value.jsonData, searchFunction, { deep: true });
+watch(() => inputs.value.searchInput, searchFunction);
+watch(() => inputs.value.filterInput, searchFunction, { deep: true });
 </script>
 
+<template>
+    <main>
+        <header>
+            <h1 class="centered text">Sondre's JSON Viewer</h1>
+        </header>
+        <div>
+            <div class="table-and-side-buttons">
+                <div class="table-component">
+
+                    <div class="table-container">
+                        <div class="search-bar">
+                            <input type="search" name="form" v-model="inputs.searchInput" placeholder="Search for property"
+                                aria-describedby="button-addon2" />
+                        </div>
+                        <table id="" class="table-element">
+                            <thead>
+                                <tr>
+                                    <th class=""
+                                        :class="{ 'filter-mode': booleans.filterMode, 'non-filter-mode': !booleans.filterMode }"
+                                        v-for="(field, index) in tableData.jsonKeys">
+                                        {{ field }}
+                                        <button :key="field" class="sort-button icon interactive" @click="sortTable(field)"
+                                            aria-label="Sort Icon">
+                                            <span v-html="sortStateIcon(field)"></span>
+                                        </button>
+                                        <div v-show="booleans.filterMode" class="dropdowns-container">
+                                            <div class="dropdowns">
+                                                <select v-model="inputs.filterInput[index]">
+                                                    <option v-for="(value, valueIndex) in valuesArray[index]"
+                                                        :key="valueIndex">
+                                                        {{ value }}
+                                                    </option>
+                                                </select>
+                                                <button class="bi bi-trash3 icon interactive"
+                                                    @click="resetFilterField(index)"></button>
+                                            </div>
+                                        </div>
+                                    </th>
+                                    <th class="filler-header" colspan="3"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(item, index) in dataset()" :key="dataset().indexOf(item)">
+                                    <td v-for="key in tableData.jsonKeys" :key="key">
+                                        {{ item[key as keyof typeof item] }}
+                                    </td>
+                                    <td>
+                                        <button class="bi bi-arrows-angle-expand icon list-buttons interactive" @click="
+                                            !booleans.expandField
+                                                ? [expandEntry(index), deleteEntry(index)]
+                                                : alertFunction('Finish what you\'re doing first!')
+                                            "></button>
+                                    </td>
+                                    <td>
+                                        <button class="bi bi-wrench icon list-buttons interactive" @click="
+                                            !booleans.inputArea
+                                                ? [moveEntry(index), deleteEntry(index)]
+                                                : alertFunction('Finish what you\'re doing first!')
+                                            "></button>
+                                    </td>
+                                    <td><button class="bi bi-trash3 icon list-buttons interactive"
+                                            @click="deleteEntry(index)"></button></td>
+                                </tr>
+                                <tr class="">
+                                    <td v-show="booleans.inputArea" v-for="(field, index) in tableData.jsonKeys">
+                                        <input type="text" :key="index" v-model="inputs.formInput[index]" />
+                                    </td>
+                                    <td v-show="booleans.inputArea" colspan="2">
+                                        <button type="button" class="interactive" @click="pushInput()">Submit</button>
+                                    </td>
+                                    <td v-show="booleans.inputArea">
+                                        <button @click="resetInput()"
+                                            class="bi bi-trash3 icon list-buttons interactive"></button>
+                                    </td>
+                                </tr>
+                                <tr class="" v-show="booleans.expandField">
+                                    <td v-for="(item, index) in inputs.expandInput">
+                                        <strong>{{ inputs.expandInput[index] }}</strong>
+                                    </td>
+                                    <td rowspan="2" colspan="3">
+                                        <button @click="moveEntry(undefined)"
+                                            class="bi bi-arrows-angle-contract icon interactive"></button>
+                                    </td>
+                                </tr>
+                                <!-- Show Age section
+                            <tr class="" v-show="booleans.expandField">
+                                <td><strong> Age: </strong></td>
+                                <td>{{ getAge(inputs.expandInput[4]) }}</td>
+                            </tr>
+                            --->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="side-buttons">
+                    <button class="bi bi-funnel-fill icon interactive" @click="
+                        booleans.filterMode
+                            ? [(booleans.filterMode = false), resetFilterField(undefined)]
+                            : (booleans.filterMode = true)
+                        ">
+                    </button>
+                    <button class="icon">
+                        +
+                    </button>
+                    <button class="icon">
+                        R
+                    </button>
+                </div>
+            </div>
+            <div class="bottom-buttons">
+                <button type.prevent="button" class="interactive"
+                    @click="booleans.inputArea ? toggleShow('hide_entry') : toggleShow('show_entry')">
+                    Add new entry
+                </button>
+                <button type.prevent="button" class="interactive" @click="resetFields()">
+                    Reset fields
+                </button>
+            </div>
+        </div>
 
 
 
+        <footer>
+            <h3>{{ tableData.jsonData[0] }}</h3>
+
+            <div>
+                <h2>{{ getSearch() }}</h2>
+                <h3>{{ inputs.filterInput }}</h3>
+                <h3>{{ tableData.jsonKeys }}</h3>
+                <h3>Modify: {{ inputs.formInput }}</h3>
+                <h3>Expand: {{ inputs.expandInput }}</h3>
+                <h3>{{ getAge('1997-04-29') }}</h3>
+            </div>
+        </footer>
+    </main>
+</template>
 
 <style scoped>
-.icon {
-    border: 0;
-    background-color: transparent;
+main {
+    background-color: #2d282c;
+    border: 2px groove rgba(255, 255, 255, 0.20);
+    border-top: 0;
+    border-radius: 17px;
+    box-shadow: 0 0 15px 0px rgba(255, 255, 255, 0.375);
+    max-width: 70%;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 10px 0 50px 0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #eae9ea;
+    text-align: center;
 }
 
-.table-outer-box {
+.search-bar {
+    width: 100%;
+
+    input {
+        width: 100%;
+        border: 1px solid #eae9ea;
+        padding: 8px 0;
+        background-color: #eae9ea;
+
+        &::placeholder {
+            color: black;
+            padding-left: 10px;
+            font-weight: bold;
+        }
+    }
+}
+
+.table-container {
     display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin: 0 auto;
+    max-width: 100%;
 }
 
-.action-header {
-    width: 40px;
+.table-component {
+    display: block;
+    justify-content: center;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
 }
 
-.side-panel-button {
-    border-radius: 3px;
-
+table {
+    display: table;
+    table-layout: auto;
+    width: 100%;
+    font-size: 16px;
+    text-align: center;
+    border-collapse: collapse;
 }
 
-.row-header-button {
-    box-sizing: border-box;
-    font-weight: normal;
-    border-radius: 3px;
+.table-and-side-buttons {
+    display: flex;
+    align-items: flex-start;
+    align-self: center;
+    width: 95%;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-.expanded-row {
-    border: solid black 2px;
+.table-element th {
+    border: 1px solid rgb(235, 234, 235, 0.8);
+    padding-top: 10px;
+    padding-right: 20px;
 }
 
-.dropdown {
-    display: inline-block;
+.filter-mode {
+    padding-bottom: 31px;
+    margin-bottom: 40px;
 }
 
-.filter-box {
-    display: inline-block;
+.non-filter-mode {
+    padding-bottom: 10px;
 }
 
-.button {
-    margin: 5px 2px;
-    border-radius: 5px;
+.table-element td {
+    border: 1px solid rgb(235, 234, 235, 0.8);
+    padding: 9px 0;
 }
 
-.selectedButton {
-    box-shadow: 0px 0px 2px 1px gray;
+tbody tr {
+    background-color: #3b363a;
 }
 
-.reset-fields-button {
-    background-color: rgb(58, 58, 58);
+tbody tr:nth-child(even) {
+    background-color: #504a4f;
+}
+
+.dropdowns-container {
+    padding-top: 3px;
+    position: relative;
+    align-items: center;
+    left: 10px;
+}
+
+.dropdowns {
+    position: absolute;
+    left: 0;
+    right: 0;
+
+    select {
+        background-color: #eae9ea;
+        border-radius: 6px;
+        font-size: 15px;
+    }
+}
+
+.list-buttons {
+    width: 11px;
+    padding: 0;
+    margin: 0;
+}
+
+.side-buttons {
+    margin-top: 40px;
+    width: 32px;
+    margin-left: 5px;
+    border-collapse: collapse;
+
+    button {
+        border: 1px solid rgb(59, 54, 58);
+        border-radius: 7px;
+        margin-top: 3px;
+        margin-bottom: 3px;
+        width: 30px;
+        height: 30px;
+        font-size: 18px;
+        background-color: rgb(235, 234, 235);
+        color: black;
+
+    }
+}
+
+footer {
     color: white;
 }
 
-.hidden-area-headers {
+.interactive {
+    cursor: pointer;
+}
+
+.sort-button {
+    position: absolute;
+    margin: -2px;
+    font-size: 20px;
     font-weight: bold;
+}
+
+.bottom-buttons {
+    top: 3px;
+    position: relative;
+    text-align: right;
+    right: calc(2.55% + 35px);
+
+    button {
+        border: solid 1px black;
+        padding: 5px 7px;
+        border-radius: 4px;
+        font-size: 14.5px;
+    }
+}
+
+.button {
+    cursor: pointer;
+}
+
+.icon {
+    border: 0;
+    background-color: transparent;
+    color: #eae9ea;
 }
 </style>

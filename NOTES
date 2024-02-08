@@ -1,28 +1,5 @@
 Alt + Shift + F for code cleanup. Pog.
 
+# Fikse opp i koden?
 
-To-dos:
-Flytt JSON data til egen mappe
-
-let searchQueryOn = false;
-
-//for loop i
-//check if json[i] includes searchquery
-//if true, append to new array
-//searchQueryOn = true;
-
-
-//Skriv queryJson inn i template med conditioning
-//Legg til conditioning i funksjonen(e)
-
-
-Legg til skjult linje
-Knapp toggler linjen
-//Linjen har ett felt for hver field
-En knapp 'on click' appender det til json
-
-
-Ny searchFunction
-
-1. Om filterfield og search er tom: searchfield:false, empty modifiedJson, return. Else: fortsett og skru på searchfield:true til slutt
-2. Filtrer hver entry etter search og property per index
+# 
