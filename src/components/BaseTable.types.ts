@@ -16,7 +16,7 @@ export type BooleansType = {
 };
 
 export type InputsType = {
-  currentModifiedEntry: Array<AcceptedTypes>;
+  entryEditIndex: null | number;
   expandDate: string;
   expandInput: Array<AcceptedTypes>;
   filterInput: Array<AcceptedTypes>;
