@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import BaseTable from './components/Table.vue'
+import Table from './components/BaseTable.vue'
 </script>
 
 <script>
