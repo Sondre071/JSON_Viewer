@@ -17,12 +17,8 @@ export type BooleansType = {
 
 export type InputsType = {
   entryEditIndex: null | number;
-  expandDate: string;
-  expandInput: Array<AcceptedTypes>;
+  entryEditBackup: EntryObject;
   filterInput: Array<AcceptedTypes>;
-  formInput: Array<AcceptedTypes>;
-  inputFieldsTypes: Array<AcceptedTypes>;
-  modifyEntryInput: Array<AcceptedTypes>;
   searchInput: string;
 };
 
