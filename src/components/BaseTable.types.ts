@@ -1,14 +1,14 @@
-export type AcceptedTypes = string | number | bigint | boolean | undefined | null;
+export type AcceptedTypes = string | number | undefined | bigint | null;
 export type EntryObject = {
   [key: string]: AcceptedTypes;
 };
 
 export type TableDataType = {
   baseData: Array<EntryObject>;
-  currentDropdowns: Array<AcceptedTypes>[];
   dataFields: Array<string>;
   renderedData: Array<EntryObject>;
   unsortedData: Array<EntryObject>;
+  currentDropdowns: Array<AcceptedTypes>[];
 };
 
 export type BooleansType = {
@@ -16,7 +16,7 @@ export type BooleansType = {
 };
 
 export type InputsType = {
-  entryEditIndex: null | number;
+  entryEditIndex: undefined | number;
   entryEditBackup: EntryObject;
   filterInput: Array<AcceptedTypes>;
   searchInput: string;
