@@ -271,7 +271,7 @@ const resetButton = (): void => {
     keyof TableTypes.InputsType
   >;
   resetList.forEach((element) => resetInputsValue(element));
-  changeBoolean('oldEntryEdit', false)
+  changeBoolean('oldEntryEdit', false);
   console.log('*** resetButton end');
 };
 
@@ -370,7 +370,10 @@ watch(() => inputs.value.filterInput, searchFunction, { deep: true });
                     </button>
                     <div v-show="getBoolean('filterMode')" class="dropdowns-container">
                       <div class="dropdowns">
-                        <select v-model="inputs.filterInput[index]" :disabled="getInput('entryEditIndex') !== undefined">
+                        <select
+                          v-model="inputs.filterInput[index]"
+                          :disabled="getInput('entryEditIndex') !== undefined"
+                        >
                           <option
                             v-for="(value, valueIndex) in getData('currentDropdowns', 'dropdowns')[
                               index
@@ -381,7 +384,12 @@ watch(() => inputs.value.filterInput, searchFunction, { deep: true });
                           </option>
                         </select>
                         <button
-                          class="bi bi-trash3 icon interactable"
+                          :class="{
+                            interactable: !entryEditStatus(),
+                            fade: entryEditStatus(),
+                          }"
+                          :disabled="getInput('entryEditIndex') !== undefined"
+                          class="bi bi-trash3 icon"
                           @click="resetInputsValue('filterInput', index)"
                         ></button>
                       </div>
@@ -396,7 +404,7 @@ watch(() => inputs.value.filterInput, searchFunction, { deep: true });
                   :key="getData('renderedData', 'v-for html :key').indexOf(item)"
                 >
                   <template v-if="getInput('entryEditIndex') === index">
-                    <td v-for="key in tableData.dataFields" :key="key" class="full-opacity">
+                    <td v-for="key in tableData.dataFields" :key="key">
                       <input
                         type="text"
                         v-model="getData('baseData', 'v-for html input')[index][key]"
@@ -702,20 +710,6 @@ footer {
   font-size: 20px;
   font-weight: bold;
 }
-
-.bottom-buttons {
-  top: 3px;
-  position: relative;
-  text-align: right;
-  right: calc(2.56% + 34px);
-
-  button {
-    border: solid 1px black;
-    padding: 5px 7px;
-    border-radius: 4px;
-    font-size: 14.5px;
-  }
-}
 .debug-inner-box {
   margin-bottom: 50px;
   width: 100%;
@@ -753,14 +747,5 @@ footer {
   border: 0;
   background-color: transparent;
   color: #eae9ea;
-}
-
-.half-opacity {
-  opacity: 50%;
-}
-
-.full-opacity {
-  opacity: initial;
-  color: red;
 }
 </style>
