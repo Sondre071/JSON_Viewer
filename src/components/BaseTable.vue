@@ -278,6 +278,7 @@ const resetButton = (): void => {
 const crossButton = (): void => {
   if (getBoolean('oldEntryEdit')) {
     restoreEntry();
+    changeBoolean('oldEntryEdit', false)
   } else if (getBoolean('newEntryEdit')) {
     deleteEntry(getData('baseData', 'crossButton()').length - 1);
     changeBoolean('newEntryEdit', false);
