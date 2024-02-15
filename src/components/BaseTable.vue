@@ -9,6 +9,10 @@ const fillArray = (value: TableTypes.AcceptedTypes) => {
   return Object.keys(sourceData[0]).map(() => value);
 };
 
+/***
+ * Data
+ */
+
 const tableData: Ref<TableTypes.TableDataType> = ref({
   baseData: sourceData, // Base data to draw from
   renderedData: sourceData, // Filtered and searched data
@@ -18,25 +22,22 @@ const tableData: Ref<TableTypes.TableDataType> = ref({
 });
 
 const inputs: Ref<TableTypes.InputsType> = ref({
-  currentModifiedEntry: fillArray(''),
-  expandDate: '',
-  expandInput: fillArray(''),
-  filterInput: fillArray(null),
-  formInput: fillArray(''),
-  inputFieldsTypes: Object.values(tableData.value.baseData[0]).map((x) => typeof x),
-  modifyEntryInput: fillArray(''),
+  entryEditIndex: undefined,
+  entryEditBackup: {},
+  filterInput: fillArray(undefined),
   searchInput: '',
 });
 
-const backupInputs: TableTypes.InputsType = cloneDeep(inputs.value);
+const inputResets = cloneDeep(inputs.value);
 
 const booleans: Ref<TableTypes.BooleansType> = ref({
-  expandField: false,
+  oldEntryEdit: false,
+  newEntryEdit: false,
   filterField: false,
   filterMode: false,
-  formInputArea: false,
   manipulateTable: false,
   searchMode: false,
+  debug: false,
 });
 
 const sorting: Ref<TableTypes.SortingType> = ref({
@@ -44,183 +45,182 @@ const sorting: Ref<TableTypes.SortingType> = ref({
   sortState: 'none',
 });
 
-const getData = <K extends keyof TableTypes.TableDataType>(key: K) => {
-  console.log('*-- getData(): ' + key);
+/***
+ * Data get and set functions
+ */
+
+const getData = <K extends keyof TableTypes.TableDataType>(
+  key: K,
+  consoleString: String,
+): TableTypes.TableDataType[K] => {
+  console.log('*-- getData(): ' + key + ' for: ' + consoleString);
   return tableData.value[key];
 };
 
-const setData = <K extends keyof TableTypes.TableDataType>(
-  input: Array<TableTypes.EntryObject>,
-  key: K,
-) => {
-  console.log('*** setData(): ' + input);
-  tableData.value[key] = input as TableTypes.TableDataType[K];
-};
-
-/*
-const delay = (callback: any, timeout = 800) => {
-  setTimeout(() => {
-    callback;
-  }, timeout);
-};
-*/
-
-const createEntryObject = () => {
-  const newEntryObject: TableTypes.EntryObject = {};
-  const dataFieldsTemp = getData('dataFields');
-  const formInputTemp = getInput('formInput');
-  for (let i = 0; i < dataFieldsTemp.length; i++) {
-    newEntryObject[dataFieldsTemp[i]] = formInputTemp[i];
-  }
-  pushData(newEntryObject, 'baseData');
-  resetInputsValue('formInput');
-};
-
-const pushData = <K extends keyof TableTypes.TableDataType>(
-  object: TableTypes.EntryObject,
-  str: K,
-) => {
-  tableData.value[str].push(object as TableTypes.EntryObject & TableTypes.AcceptedTypes[] & string);
-};
-
-const getInput = <K extends keyof TableTypes.InputsType>(str: K) => {
+const getInput = <K extends keyof TableTypes.InputsType>(str: K): TableTypes.InputsType[K] => {
+  console.log('*-- getInput(): ' + str);
   return inputs.value[str];
+};
+
+const entryEditStatus = (): boolean => {
+  console.log('*-- entryEditStatus()');
+  return getInput('entryEditIndex') !== undefined ? true : false;
+};
+
+const getBoolean = <K extends keyof TableTypes.BooleansType>(str: K): boolean => {
+  console.log('*-- getBoolean(): ' + str);
+  return booleans.value[str];
+};
+
+const setData = <K extends keyof TableTypes.TableDataType>(
+  key: K,
+  input: TableTypes.TableDataType[K],
+): void => {
+  console.log('*-- setData(): ' + input + ' to: ' + input);
+  tableData.value[key] = input;
 };
 
 const setInput = <K extends keyof TableTypes.InputsType>(
   str: K,
-  value: TableTypes.AcceptedTypes[],
-) => {
+  value: TableTypes.InputsType[K],
+): void => {
+  console.log('*-- setInput(): ' + str + ' to: ' + value);
   inputs.value[str] = value as TableTypes.InputsType[K];
 };
 
-const resetInputsValue = <K extends keyof TableTypes.InputsType>(key: K) => {
-  console.log('**- resetInputsValue()\n *-- Resetting: ' + key);
-  inputs.value[key] = backupInputs[key];
+const changeBoolean = <K extends keyof TableTypes.BooleansType>(
+  str: K,
+  setToggle: boolean | undefined = undefined,
+): void => {
+  console.log(
+    '*-- changeBoolean(): ' + str + ', ' + (setToggle === undefined ? 'toggle' : setToggle),
+  );
+  booleans.value[str] = setToggle === undefined ? !booleans.value[str] : setToggle;
 };
 
-const getSearch = () => {
-  return inputs.value.searchInput.toLowerCase();
-};
-
-const getFilters = () => {
-  return inputs.value.filterInput;
-};
-
-const getBoolean = (str: string) => {
-  return booleans.value[str];
-};
-
-const changeBoolean = (str: string, setToggle: boolean | undefined = undefined, timeout = 80) => {
-  setTimeout(() => {
-    console.log('*** changeBoolean(): ' + str + ', ' + setToggle);
-    if (typeof setToggle === 'boolean') {
-      booleans.value[str] = setToggle;
-    }
-    booleans.value[str] = !booleans.value[str];
-  }, timeout);
-};
-
-const resetButton = () => {
-  console.log('*** resetButton()');
-  const resetList: Array<keyof TableTypes.InputsType> = Object.keys(inputs.value) as Array<
-    keyof TableTypes.InputsType
-  >;
-  resetList.forEach((element) => resetInputsValue(element));
-};
-
-/*
-const moveEntry = (index: number | undefined) => {
-  console.log('*** moveEntry()');
-
-  if (typeof index === 'number') {
-    booleans.value.formInputArea = true;
-    inputs.value.formInput = Object.values(tableData.value.renderedData[index]);
-    inputs.value.currentModifiedEntry = Object.values(tableData.value.renderedData[index]);
-  } else if (index === undefined) {
-    pushInput();
-    booleans.value.formInputArea = false;
-    booleans.value.expandField = false;
+const resetInputsValue = <K extends keyof TableTypes.InputsType>(key: K, index?: number): void => {
+  console.log('**- resetInputsValue(): ' + key + ' ' + index);
+  if (index === undefined) {
+    inputs.value[key] = inputResets[key];
   } else {
-    console.log('- moveEntry got a strange input');
+    inputs.value.filterInput[index] = null;
   }
 };
-*/
 
-const modifyEntry = (index: number) => {
-  //start her
+/***
+ * New entry functions
+ */
+
+const addBlankEntry = (): void => {
+  console.log('*** addBlankEntry()');
+  changeBoolean('oldEntryEdit', false);
+  changeBoolean('newEntryEdit', true);
+  const blankObject: TableTypes.EntryObject = {};
+  const dataFieldsTemp = getData('dataFields', 'addBlankEntry()');
+  for (let i = 0; i < dataFieldsTemp.length; i++) {
+    blankObject[dataFieldsTemp[i]] = '';
+  }
+  setInput('entryEditIndex', getData('baseData', 'addBlankEntry()').length);
+  getData('baseData', 'addBlankEntry').push(blankObject);
+};
+
+const modifyEntry = (index: number): void => {
   console.log('*** modifyEntry(): ' + index);
-  const formInputTemp = Object.values(getData('renderedData')[index]);
-  setInput('formInput', formInputTemp);
+  if (getBoolean('newEntryEdit')) {
+    getData('baseData', 'modifyEntry()').splice(getData('baseData', 'modifyEntry()').length - 1);
+    changeBoolean('newEntryEdit', false);
+  } else if (getBoolean('oldEntryEdit')) {
+    restoreEntry();
+  }
+  changeBoolean('oldEntryEdit', true);
+  setInput('entryEditBackup', cloneDeep(getData('renderedData', 'modifyEntry()')[index]));
+  setInput('entryEditIndex', index);
+  console.log('*** modifyEntry() end');
 };
 
-const deleteEntry = (index: number, timeout = 80) => {
-  console.log('*** deleteEntry()');
-  tableData.value.baseData.splice(index, 1);
+const validateNewEntry = (): boolean => {
+  console.log('*-- validateNewEntry()');
+  //const typeMatch = Object.values(getData('baseData')[0]).toString();
+  const newEntry = Object.values(
+    getData('baseData', 'validateNewEntry()')[getData('baseData', 'validateNewEntry()').length - 1],
+  ); //is string already
+
+  return newEntry.every((element) => element !== '');
 };
 
-const sortTable = (key: string) => {
+const saveEntry = (): void => {
+  console.log('*-- saveEntry()');
+  const entryIndex = getInput('entryEditIndex') as number;
+
+  setInput('entryEditIndex', undefined);
+  resetInputsValue('entryEditBackup');
+  changeBoolean('newEntryEdit', false);
+  changeBoolean('oldEntryEdit', false);
+};
+
+const restoreEntry = (): void => {
+  const index = getInput('entryEditIndex');
+  if (index !== undefined) {
+    getData('baseData', 'restoreEntry()')[index] = getInput('entryEditBackup');
+    resetInputsValue('entryEditBackup');
+    resetInputsValue('entryEditIndex');
+  }
+};
+
+const deleteEntry = (index: number): void => {
+  console.log('*-- deleteEntry()');
+  getData('baseData', 'deleteEntry').splice(index, 1);
+};
+
+/***
+ * table functions
+ */
+
+const sortTable = (key: string): void => {
   console.log('*** sorttable()');
   const states: ('none' | 'ascending' | 'descending')[] = [
     'none',
     'ascending',
     'descending',
   ] as const;
-  setTimeout(() => {
-    if (sorting.value.currentSort !== key) {
-      sorting.value.sortState = 'none';
-    }
-    const currentIndex = states.indexOf(sorting.value.sortState);
-    const nextIndex = (currentIndex + 1) % states.length;
-    const nextState = states[nextIndex];
-    const sortActions = {
-      none: (key: string = 'default') => (tableData.value.baseData = tableData.value.unsortedData),
-      ascending: (key: string) => (tableData.value.baseData = sortBy(getData('baseData'), key)),
-      descending: (key: string = 'default') =>
-        (tableData.value.baseData = sortBy(getData('baseData').reverse())),
-    };
+  if (sorting.value.currentSort !== key) {
+    sorting.value.sortState = 'none';
+  }
+  const currentIndex = states.indexOf(sorting.value.sortState);
+  const nextIndex = (currentIndex + 1) % states.length;
+  const nextState = states[nextIndex];
+  const sortActions = {
+    none: (key: string = 'default') => (tableData.value.baseData = tableData.value.unsortedData),
+    ascending: (key: string) =>
+      (tableData.value.baseData = sortBy(getData('baseData', 'sortTable()'), key)),
+    descending: (key: string = 'default') =>
+      (tableData.value.baseData = sortBy(getData('baseData', 'sortTable()').reverse())),
+  };
 
-    sorting.value.currentSort = key;
-    sorting.value.sortState = nextState;
-    tableData.value.baseData = sortActions[nextState](key);
-  }, 80); //timeout
+  sorting.value.currentSort = key;
+  sorting.value.sortState = nextState;
+  setData('baseData', sortActions[nextState](key));
+  console.log('*** sortTable() end');
 };
 
-const resetFilterField = (str: number | undefined) => {
-  console.log('*** resetfilterfield()');
-  if (str === undefined) {
-    inputs.value.filterInput = fillArray(null);
-    inputs.value.searchInput = '';
-    console.log('resetAll called. finterInput is now: ' + inputs.value.filterInput);
-  } else {
-    inputs.value.filterInput[str] = null;
-  }
-};
+const searchFunction = (): void => {
+  console.log('*** searchFunction()');
 
-const searchFunction = () => {
-  console.log('*** searc()');
-  if (getFilters().every((element) => element === undefined && getSearch() === '')) {
-    console.log('*** searchfunction ended early');
-    setData(getData('baseData'), 'renderedData');
-    booleans.value.searchMode = false;
-    dropdownMapping();
-    return;
-  }
+  const tempBaseData = getData('baseData', 'searchFunction()');
+  let tempRenderedData: Array<TableTypes.EntryObject> = [];
+  const tempSearch = getInput('searchInput');
+  const tempFilters = getInput('filterInput');
 
-  setData([], 'renderedData');
-  console.log('- Searchfunction starting for loop');
-  for (let i = 0; i < getData('baseData').length; i++) {
-    console.log('- Searchfunction for loop iteration: ' + i);
-    const stringedValues = JSON.stringify(Object.values(getData('baseData')[i]));
-    if (!getSearch() || stringedValues.toLowerCase().includes(getSearch())) {
-      console.log('- Searchfunction if statement passed');
+  for (let i = 0; i < tempBaseData.length; i++) {
+    console.log('*- Searchfunction() working... Iteration: ' + i);
+    const stringedValues = JSON.stringify(Object.values(tempBaseData[i]));
+    if (!tempSearch || stringedValues.toLowerCase().includes(tempSearch)) {
       if (
-        Object.values(getData('baseData')[i]).every(
-          (element, index) => !getFilters()[index] || element == getFilters()[index],
+        Object.values(tempBaseData[i]).every(
+          (element, index) => !tempFilters[index] || element == tempFilters[index],
         )
       ) {
-        console.log('- Searchfunction second if statement passed');
-        tableData.value.renderedData.push(getData('baseData')[i]);
+        tempRenderedData.push(tempBaseData[i]);
       } else {
         continue;
       }
@@ -228,34 +228,80 @@ const searchFunction = () => {
       continue;
     }
   }
-  booleans.value.searchMode = true;
+  setData('renderedData', tempRenderedData);
   dropdownMapping();
+  console.log('***searchFunction() end');
 };
 
-const dropdownMapping = () => {
-  tableData.value.currentDropdowns = [];
+const dropdownMapping = (): void => {
   console.log('*** dropDownMapping()');
-  for (let i = 0; i < getData('renderedData').length; i++) {
-    const tempArray = Object.values(getData('renderedData')[i]);
-    for (let j = 0; j < tempArray.length; j++) {
-      if (!tableData.value.currentDropdowns[j]) {
-        tableData.value.currentDropdowns[j] = [];
-      }
-      if (tableData.value.currentDropdowns[j].includes(tempArray[j])) {
-        continue;
-      }
-      tableData.value.currentDropdowns[j].push(tempArray[j]);
-    }
-  }
-  for (let i = 0; i < tableData.value.currentDropdowns.length; i++) {
-    tableData.value.currentDropdowns[i] = sortBy(tableData.value.currentDropdowns[i]);
-  }
+
+  const tempDropdowns: Set<TableTypes.AcceptedTypes>[] = getData(
+    'dataFields',
+    'dropdownMapping',
+  ).map(() => new Set());
+
+  console.log('bing');
+  getData('renderedData', 'dropdownMapping()').forEach((element) => {
+    Object.values(element).forEach((value: TableTypes.AcceptedTypes, index) => {
+      tempDropdowns[index].add(value);
+    });
+  });
+  console.log('chilling');
+
+  const tempSortedDropdowns: Array<TableTypes.AcceptedTypes>[] = tempDropdowns.map((element) =>
+    sortBy([...element]),
+  );
+  setData('currentDropdowns', tempSortedDropdowns);
   console.log('*** dropDownMapping end');
+  console.log('bang');
 };
 
-const dropdownMap = () => {};
+/***
+ * Buttons
+ */
 
-const sortStateIcon = (field: string) => {
+const resetButton = (): void => {
+  console.log('*** resetButton()');
+  if (getBoolean('newEntryEdit')) {
+    deleteEntry(getInput('entryEditIndex') as number);
+    changeBoolean('newEntryEdit');
+  }
+  const resetList: Array<keyof TableTypes.InputsType> = Object.keys(inputs.value) as Array<
+    keyof TableTypes.InputsType
+  >;
+  resetList.forEach((element) => resetInputsValue(element));
+  changeBoolean('oldEntryEdit', false);
+  console.log('*** resetButton end');
+};
+
+const crossButton = (): void => {
+  if (getBoolean('oldEntryEdit')) {
+    restoreEntry();
+  } else if (getBoolean('newEntryEdit')) {
+    deleteEntry(getData('baseData', 'crossButton()').length - 1);
+    changeBoolean('newEntryEdit', false);
+  }
+  setInput('entryEditIndex', undefined);
+  setInput('entryEditBackup', {});
+  console.log('*** crossButton() end');
+};
+
+const deleteButton = (index: number): void => {
+  console.log('*** deleteButton()');
+  const currentIndex = getInput('entryEditIndex');
+  getData('baseData', 'deleteButton()').splice(index, 1);
+  if (index === currentIndex) {
+    resetInputsValue('entryEditIndex');
+    return;
+  } else if (currentIndex !== undefined && currentIndex !== 0 && index < currentIndex) {
+    setInput('entryEditIndex', currentIndex - 1);
+  }
+  console.log('*** deleteButton() end');
+};
+
+const sortStateIcon = (field: string): string => {
+  console.log('*-- sortStateIcon()');
   if (field !== sorting.value.currentSort) {
     return '&#8693;';
   }
@@ -268,38 +314,8 @@ const sortStateIcon = (field: string) => {
   return icons[sorting.value.sortState];
 };
 
-/*
-const getAge = (dateString: string) => {
-    const today = new Date();
-    const date = new Date(dateString);
-
-    let years = today.getFullYear() - date.getFullYear();
-    let months = today.getMonth() - date.getMonth();
-    let days = today.getDate() - date.getDate();
-
-    if (days < 0) {
-        months--;
-        days += new Date(today.getFullYear(), today.getMonth(), 0).getDate();
-    }
-    if (months < 0) {
-        years--;
-        months += 12;
-    }
-
-    return `Character was created ${years} years, ${months} months, ${days} days ago`;
-};
-*/
-
 const alertFunction = (str: string) => {
   alert(str);
-};
-
-const expandEntry = (index: number) => {
-  console.log('*** expandEntry()');
-  setTimeout(() => {
-    inputs.value.expandInput = Object.values(tableData.value.renderedData[index]);
-    booleans.value.expandField = !booleans.value.expandField;
-  }, 80); //timeout
 };
 
 dropdownMapping();
@@ -342,25 +358,39 @@ watch(() => inputs.value.filterInput, searchFunction, { deep: true });
                     {{ field }}
                     <button
                       :key="field"
-                      class="sort-button icon interactable"
-                      @click="sortTable(field)"
+                      :class="{
+                        interactable: !entryEditStatus(),
+                        fade: entryEditStatus(),
+                      }"
+                      class="sort-button icon"
+                      @click="!entryEditStatus() ? sortTable(field) : {}"
                       aria-label="Sort Icon"
                     >
                       <span v-html="sortStateIcon(field)"></span>
                     </button>
                     <div v-show="getBoolean('filterMode')" class="dropdowns-container">
                       <div class="dropdowns">
-                        <select v-model="inputs.filterInput[index]">
+                        <select
+                          v-model="inputs.filterInput[index]"
+                          :disabled="getInput('entryEditIndex') !== undefined"
+                        >
                           <option
-                            v-for="(value, valueIndex) in tableData.currentDropdowns[index]"
+                            v-for="(value, valueIndex) in getData('currentDropdowns', 'dropdowns')[
+                              index
+                            ]"
                             :key="valueIndex"
                           >
                             {{ value }}
                           </option>
                         </select>
                         <button
-                          class="bi bi-trash3 icon interactable"
-                          @click="resetFilterField(index)"
+                          :class="{
+                            interactable: !entryEditStatus(),
+                            fade: entryEditStatus(),
+                          }"
+                          :disabled="getInput('entryEditIndex') !== undefined"
+                          class="bi bi-trash3 icon"
+                          @click="resetInputsValue('filterInput', index)"
                         ></button>
                       </div>
                     </div>
@@ -370,88 +400,58 @@ watch(() => inputs.value.filterInput, searchFunction, { deep: true });
               </thead>
               <tbody>
                 <tr
-                  v-for="(item, index) in getData('renderedData')"
-                  :key="getData('renderedData').indexOf(item)"
+                  v-for="(item, index) in getData('renderedData', 'v-for html tr')"
+                  :key="getData('renderedData', 'v-for html :key').indexOf(item)"
                 >
-                  <td v-for="key in tableData.dataFields" :key="key">
-                    {{ item[key as keyof typeof item] }}
-                  </td>
-                  <!---
-                                    <td v-show="booleans.manipulateTable">
-                                        <button class="bi bi-arrows-angle-expand icon list-buttons interactable" @click="
-                                            !booleans.expandField
-                                                ? [expandEntry(index), deleteEntry(index)]
-                                                : alertFunction('Finish what you\'re doing first!')
-                                            "></button>
-                                    </td>
-                                -->
-                  <td>
-                    <button
-                      :class="{
-                        invisible: getBoolean('formInputArea') || !getBoolean('manipulateTable'),
-                      }"
-                      class="bi bi-wrench icon list-buttons interactable"
-                      @click="
-                        !getBoolean('formInputArea')
-                          ? [
-                              modifyEntry(index),
-                              changeBoolean('formInputArea', undefined, 0),
-                              deleteEntry(index, 0),
-                            ]
-                          : alertFunction('Finish what you\'re doing first!')
-                      "
-                    ></button>
-                  </td>
-                  <td>
-                    <button
-                      :class="{ invisible: !getBoolean('manipulateTable') }"
-                      class="bi bi-trash3 icon list-buttons interactable"
-                      @click="deleteEntry(index)"
-                    ></button>
-                  </td>
+                  <template v-if="getInput('entryEditIndex') === index">
+                    <td v-for="key in tableData.dataFields" :key="key">
+                      <input
+                        type="text"
+                        v-model="getData('baseData', 'v-for html input')[index][key]"
+                      />
+                    </td>
+                    <td class="list-buttons">
+                      <button
+                        type="submit"
+                        class="new-entry-submit icon interactable"
+                        @click="validateNewEntry() ? saveEntry() : alertFunction('Invalid entry')"
+                      >
+                        &#10003;
+                      </button>
+                    </td>
+                    <td class="list-buttons">
+                      <button class="icon interactable" @click="crossButton()">&#10006;</button>
+                    </td>
+                  </template>
+                  <template v-else>
+                    <td v-for="key in tableData.dataFields" :key="key">
+                      {{ item[key] }}
+                    </td>
+                    <td class="list-buttons">
+                      <button
+                        id="pen"
+                        :class="{
+                          invisible: !getBoolean('manipulateTable'),
+                        }"
+                        class="icon interactable"
+                        style="transform: rotate(90deg)"
+                        @click="modifyEntry(index)"
+                      >
+                        &#9998;
+                      </button>
+                    </td>
+                    <td class="list-buttons">
+                      <button
+                        id="trash-can"
+                        :class="{
+                          invisible: !getBoolean('manipulateTable'),
+                        }"
+                        class="bi bi-trash3 icon interactable"
+                        @click="deleteButton(index)"
+                      ></button>
+                    </td>
+                  </template>
                 </tr>
-                <tr class="input-area">
-                  <td
-                    v-show="getBoolean('formInputArea')"
-                    v-for="(item, index) in tableData.dataFields"
-                  >
-                    <input type="text" required :key="index" v-model="inputs.formInput[index]" />
-                  </td>
-                  <td v-show="getBoolean('formInputArea')" colspan="1">
-                    <button
-                      type="submit"
-                      class="new-entry-submit icon interactable"
-                      @click="
-                        createEntryObject(), changeBoolean('formInputArea', undefined, 0)
-                      "
-                    >
-                      &#10003;
-                    </button>
-                  </td>
-                  <td v-show="getBoolean('formInputArea')">
-                    <button
-                      @click="resetInputsValue('formInput')"
-                      class="bi bi-trash3 icon interactable"
-                    ></button>
-                  </td>
-                </tr>
-                <tr class="" v-show="getBoolean('expandField')">
-                  <td v-for="(item, index) in inputs.expandInput">
-                    <strong>{{ inputs.expandInput[index] }}</strong>
-                  </td>
-                  <td rowspan="2" colspan="3">
-                    <button
-                      @click="createEntryObject()"
-                      class="bi bi-arrows-angle-contract icon interactable"
-                    ></button>
-                  </td>
-                </tr>
-                <!-- Show Age section
-                            <tr class="" v-show="booleans.expandField">
-                                <td><strong> Age: </strong></td>
-                                <td>{{ getAge(inputs.expandInput[4]) }}</td>
-                            </tr>
-                            --->
               </tbody>
             </table>
           </div>
@@ -459,26 +459,21 @@ watch(() => inputs.value.filterInput, searchFunction, { deep: true });
         <div class="side-buttons">
           <button
             id="funnel-button"
-            class="bi bi-funnel-fill icon interactable"
-            @click="
-              getBoolean('filterMode')
-                ? [changeBoolean('filterMode'), resetFilterField(undefined)]
-                : changeBoolean('filterMode')
-            "
+            class="bi bi-funnel-fill interactable icon"
+            v
+            @click="changeBoolean('filterMode')"
             title="Filter by properties"
           ></button>
           <button
-            class="icon interactable"
+            class="bi bi-wrench icon interactable"
             @click="changeBoolean('manipulateTable')"
-            style="transform: rotate(90deg)"
             title="Modify table"
-          >
-            &#9998;
-          </button>
+          ></button>
           <button
             id="plus-button"
-            class="icon interactable"
-            @click="changeBoolean('formInputArea')"
+            class="icon"
+            :class="{ interactable: !entryEditStatus() }"
+            @click="!entryEditStatus() ? [resetButton(), addBlankEntry()] : {}"
             title="Add new entry"
           >
             &#43;
@@ -491,6 +486,12 @@ watch(() => inputs.value.filterInput, searchFunction, { deep: true });
           >
             &#8634;
           </button>
+          <button
+            id="debug-button"
+            class="bi bi-bug icon interactable fade"
+            @click="changeBoolean('debug')"
+            title="Debug mode"
+          ></button>
         </div>
       </div>
       <h4 style="font-size: 15px; margin-top: 5px; font-weight: normal">
@@ -498,7 +499,33 @@ watch(() => inputs.value.filterInput, searchFunction, { deep: true });
       </h4>
     </div>
     <footer>
-      <div></div>
+      <div class="debug-box" v-show="getBoolean('debug')">
+        <div class="debug-inner-box">
+          <div class="inputs-and-booleans-debug">
+            <div class="inner-boxes">
+              <div v-for="(item, key) in inputs">
+                <p>
+                  {{ key }}:<br />
+                  {{ item }}
+                </p>
+              </div>
+            </div>
+            <div class="inner-boxes">
+              <div v-for="(item, key) in booleans">
+                <p :class="{ green: getBoolean(key as string), red: !getBoolean(key as string) }">
+                  {{ key }}:<br />
+                  {{ item }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="inner-boxes">
+          <div class="tableData-debug" v-for="(item, keys) in tableData">
+            <p :class="{ green: getBoolean(keys) }">{{ keys }}:<br />{{ item }}</p>
+          </div>
+        </div>
+      </div>
     </footer>
   </main>
 </template>
@@ -556,6 +583,7 @@ table {
   font-size: 16px;
   text-align: center;
   border-collapse: collapse;
+  overflow: scroll;
 }
 
 .table-and-side-buttons {
@@ -595,13 +623,15 @@ tbody tr:nth-child(odd) {
   background-color: #504a4f;
 }
 
-.input-area input {
-  text-align: center;
-  font-size: 14px;
-  margin-top: 0;
+tbody button {
+  font-size: 15px;
+}
+
+tbody input {
+  margin: -100px;
+  width: 80%;
+  border-radius: 7px;
   background-color: #eae9ea;
-  border-radius: 5px;
-  height: 18px;
 }
 
 .dropdowns-container {
@@ -624,9 +654,8 @@ tbody tr:nth-child(odd) {
 }
 
 .list-buttons {
-  width: 11px;
-  padding: 0;
-  margin: 0;
+  max-width: 12px;
+  min-width: 12px;
 }
 
 .side-buttons {
@@ -638,8 +667,8 @@ tbody tr:nth-child(odd) {
   button {
     border: 1px solid rgb(59, 54, 58);
     border-radius: 7px;
-    margin-top: 3px;
-    margin-bottom: 3px;
+    margin-top: 2px;
+    margin-bottom: 2px;
     padding-right: 5px;
     width: 30px;
     height: 30px;
@@ -658,16 +687,13 @@ tbody tr:nth-child(odd) {
   font-size: 25px;
 }
 
-.new-entry-submit {
-  font-size: 14px;
-  font-weight: bold;
-  padding-left: 7.8px;
-  padding-right: 7.8px;
-}
-
 #clear-button {
   text-align: center;
   font-size: 5;
+}
+
+#wrench-button {
+  position: fixed;
 }
 
 footer {
@@ -684,23 +710,33 @@ footer {
   font-size: 20px;
   font-weight: bold;
 }
-
-.bottom-buttons {
-  top: 3px;
-  position: relative;
-  text-align: right;
-  right: calc(2.56% + 34px);
-
-  button {
-    border: solid 1px black;
-    padding: 5px 7px;
-    border-radius: 4px;
-    font-size: 14.5px;
+.debug-inner-box {
+  margin-bottom: 50px;
+  width: 100%;
+  .inner-boxes {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  p {
+    padding: 0 10px;
   }
 }
 
-.button {
-  cursor: pointer;
+.green {
+  color: lightgreen !important;
+}
+
+.red {
+  color: lightcoral !important;
+}
+
+.inputs-and-booleans-debug {
+  display: flex;
+}
+
+.fade {
+  opacity: 50%;
 }
 
 .invisible {
