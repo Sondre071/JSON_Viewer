@@ -26,4 +26,3 @@ export type SortingType = {
   currentSort: string;
   sortState: 'none' | 'ascending' | 'descending';
 };
-
