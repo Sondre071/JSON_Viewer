@@ -1,13 +1,32 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import type { Ref } from 'vue';
 import { sortBy, cloneDeep } from 'lodash';
-import sourceData from '../assets/data.json';
+//import sourceData from '../assets/data.json';
 import * as TableTypes from './BaseTable.types';
+import { useTableStore } from '../stores/TableStore';
+
+const store = useTableStore();
+
+onMounted(() => {
+  store.getPokemonApiData();
+});
+
+const sourceData = store.getPokemonData;
+
+const pokemonList = store.getPokemonData;
+const pokemonListKeys = store.getPokemonDataKeys;
+
+console.log('bah' + pokemonListKeys);
 
 const fillArray = (value: TableTypes.AcceptedTypes) => {
   return Object.keys(sourceData[0]).map(() => value);
 };
+
+onMounted(() => {
+  store.searchFunction()
+}
+  )
 
 /***
  * Data
@@ -116,7 +135,7 @@ const addBlankEntry = (): void => {
   changeBoolean('oldEntryEdit', false);
   changeBoolean('newEntryEdit', true);
   const blankObject: TableTypes.EntryObject = {};
-  const dataFieldsTemp = getData('dataFields', 'addBlankEntry()');
+  const dataFieldsTemp = pokemonListKeys;
   for (let i = 0; i < dataFieldsTemp.length; i++) {
     blankObject[dataFieldsTemp[i]] = '';
   }
@@ -236,10 +255,7 @@ const searchFunction = (): void => {
 const dropdownMapping = (): void => {
   console.log('*** dropDownMapping()');
 
-  const tempDropdowns: Set<TableTypes.AcceptedTypes>[] = getData(
-    'dataFields',
-    'dropdownMapping',
-  ).map(() => new Set());
+  const tempDropdowns: Set<TableTypes.AcceptedTypes>[] = pokemonListKeys.map(() => new Set());
 
   console.log('bing');
   getData('renderedData', 'dropdownMapping()').forEach((element) => {
@@ -278,7 +294,7 @@ const resetButton = (): void => {
 const crossButton = (): void => {
   if (getBoolean('oldEntryEdit')) {
     restoreEntry();
-    changeBoolean('oldEntryEdit', false)
+    changeBoolean('oldEntryEdit', false);
   } else if (getBoolean('newEntryEdit')) {
     deleteEntry(getData('baseData', 'crossButton()').length - 1);
     changeBoolean('newEntryEdit', false);
@@ -354,7 +370,7 @@ watch(() => inputs.value.filterInput, searchFunction, { deep: true });
                       'filter-mode': getBoolean('filterMode'),
                       'non-filter-mode': !getBoolean('filterMode'),
                     }"
-                    v-for="(field, index) in tableData.dataFields"
+                    v-for="(field, index) in store.getPokemonDataKeys"
                   >
                     {{ field }}
                     <button
@@ -401,15 +417,12 @@ watch(() => inputs.value.filterInput, searchFunction, { deep: true });
               </thead>
               <tbody>
                 <tr
-                  v-for="(item, index) in getData('renderedData', 'v-for html tr')"
-                  :key="getData('renderedData', 'v-for html :key').indexOf(item)"
+                  v-for="(item, index) in store.getPokemonData"
+                  :key="store.getPokemonData.indexOf(item)"
                 >
                   <template v-if="getInput('entryEditIndex') === index">
-                    <td v-for="key in tableData.dataFields" :key="key">
-                      <input
-                        type="text"
-                        v-model="getData('baseData', 'v-for html input')[index][key]"
-                      />
+                    <td v-for="key in store.getPokemonDataKeys" :key="key">
+                      <input type="text" v-model="store.getPokemonData[index][key]" />
                     </td>
                     <td class="list-buttons">
                       <button
@@ -425,7 +438,7 @@ watch(() => inputs.value.filterInput, searchFunction, { deep: true });
                     </td>
                   </template>
                   <template v-else>
-                    <td v-for="key in tableData.dataFields" :key="key">
+                    <td v-for="key in store.getPokemonDataKeys" :key="key">
                       {{ item[key] }}
                     </td>
                     <td class="list-buttons">
@@ -527,6 +540,13 @@ watch(() => inputs.value.filterInput, searchFunction, { deep: true });
           </div>
         </div>
       </div>
+      <h3>{{ store.getPokemonData[0] }}</h3>
+      <div v-for="(value, index) in store.inputs">
+        {{ value }}
+        {{ value }}
+      </div>
+      <p>{{ store.checkFilters() }}</p>
+      <button @click="store.filterListByFilters(store.pokemonData)" >FILTER TEST</button>
     </footer>
   </main>
 </template>
