@@ -1,9 +1,5 @@
 <script setup lang="ts">
 import Table from './components/BaseTable.vue'
-import { useTableStore } from './stores/TableStore';
-
-useTableStore()
-
 </script>
 
 <script>
